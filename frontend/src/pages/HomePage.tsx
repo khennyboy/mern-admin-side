@@ -45,7 +45,7 @@ const HomePage = () => {
       pageSize: state.pageSize,
     })),
   );
-  console.log(products);
+
   const pagination = computePagination(page, totalProducts, pageSize);
 
   if (error) {
