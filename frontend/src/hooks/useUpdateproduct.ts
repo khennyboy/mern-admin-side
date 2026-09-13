@@ -12,6 +12,8 @@ type UpdateParameter = {
     id: string;
 };
 
+const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+
 const useUpdateProduct = () => {
     const queryClient = useQueryClient();
     const [searchParams] = useSearchParams();
@@ -28,6 +30,7 @@ const useUpdateProduct = () => {
                 headers: {
                     "Content-Type": "application/json",
                 },
+                credentials: "include",
                 body: JSON.stringify(product),
             });
 
@@ -49,7 +52,9 @@ const useUpdateProduct = () => {
         onSuccess: (_, { id, product }) => {
             toast(true, "Product updated successfully");
 
-            // Directly update the React Query cache using submitted variables
+            const formattedName = capitalize(product.name);
+
+            // Directly update the React Query cache
             queryClient.setQueryData<GetProductsSuccessResponse>(
                 ["products", page],
                 (old) => {
@@ -57,11 +62,20 @@ const useUpdateProduct = () => {
                     return {
                         ...old,
                         data: old.data.map((p) =>
-                            p._id === id ? { ...p, ...product, updatedAt: new Date().toISOString() } : p
+                            p._id === id
+                                ? {
+                                    ...p,
+                                    ...product,
+                                    name: formattedName,
+                                    updatedAt: new Date().toISOString(),
+                                }
+                                : p
                         ),
                     };
                 }
             );
+
+
         },
     });
 

@@ -38,7 +38,7 @@ const ProductForm = ({ submitLabel = "Save" }: ProductFormProps) => {
     formState: { errors, isDirty, isValid },
   } = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
-    mode: "onTouched",
+    mode: "onBlur",
     reValidateMode: "onChange",
     defaultValues: initialValues,
   });
@@ -80,6 +80,7 @@ const ProductForm = ({ submitLabel = "Save" }: ProductFormProps) => {
             name="name"
             value={field.value}
             onChange={field.onChange}
+            onBlur={field.onBlur}
             error={errors.name?.message}
           />
         )}
@@ -93,11 +94,16 @@ const ProductForm = ({ submitLabel = "Save" }: ProductFormProps) => {
             label="Price"
             type="number"
             name="price"
-            value={field.value === 0 || !field.value ? undefined : field.value}
+            value={
+              field.value === undefined || Number.isNaN(field.value)
+                ? ""
+                : field.value
+            }
             onChange={(e) => {
               const val = e.target.value;
-              field.onChange(Number(val));
+              field.onChange(val === "" ? undefined : Number(val));
             }}
+            onBlur={field.onBlur}
             error={errors.price?.message}
           />
         )}
@@ -112,6 +118,7 @@ const ProductForm = ({ submitLabel = "Save" }: ProductFormProps) => {
             name="image"
             value={field.value}
             onChange={field.onChange}
+            onBlur={field.onBlur}
             error={errors.image?.message}
           />
         )}
