@@ -5,7 +5,7 @@ import { connectDB } from "./config/db.js";
 import productRoutes from "./routes/products.route.js";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.route.js";
-import { protectRoute } from "./middleware/protected-route.js";
+import cors from "cors";
 
 dotenv.config();
 
@@ -13,11 +13,18 @@ const app = express();
 const PORT = process.env.PORT || 8000;
 const __dirname = path.resolve();
 
+app.use(
+  cors({
+    origin:process.env.FRONTEND_URL,
+    credentials: true,
+  }),
+);
+
 app.use(express.json());
 app.use(cookieParser());
 
 app.use("/auth", authRoutes);
-app.use("/products", protectRoute, productRoutes);
+app.use("/products", productRoutes);
 
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "frontend/dist")));
