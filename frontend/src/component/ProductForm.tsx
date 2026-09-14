@@ -3,22 +3,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import useAddProduct from "../hooks/useAddProduct";
+import useUpdateProduct from "../hooks/useUpdateproduct";
 import { useProductStore } from "../store/product-store";
+import { productSchema } from "../utils/schema";
 import type { Product, ProductFormProps } from "../utils/types";
 import FloatingInput from "./FloatingInput";
-import { useShallow } from "zustand/react/shallow";
-import { productSchema } from "../utils/schema";
-import useUpdateProduct from "../hooks/useUpdateproduct";
 
 type ProductFormValues = z.infer<typeof productSchema>;
 
 const ProductForm = ({ submitLabel = "Save" }: ProductFormProps) => {
-  const { selectedProduct, setUpdateDialog } = useProductStore(
-    useShallow((state) => ({
-      selectedProduct: state.selectedProduct,
-      setUpdateDialog: state.setUpdateDialog,
-    })),
-  );
+  const selectedProduct = useProductStore((state) => state.selectedProduct);
 
   const initialValues: Product = {
     name: selectedProduct?.name || "",
@@ -51,12 +45,7 @@ const ProductForm = ({ submitLabel = "Save" }: ProductFormProps) => {
     };
 
     if (selectedProduct) {
-      updateProduct(
-        { id: selectedProduct._id, product },
-        {
-          onSuccess: () => setUpdateDialog(false),
-        },
-      );
+      updateProduct({ id: selectedProduct._id, product });
     } else {
       addProduct(product, {
         onSuccess: () => reset(initialValues),

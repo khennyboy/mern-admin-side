@@ -6,17 +6,19 @@ import type {
     OtherProductResponse,
     Product,
 } from "../utils/types";
+import { useProductStore } from "../store/product-store";
+import { capitalize } from "../utils/capitalize";
 
 type UpdateParameter = {
     product: Product;
     id: string;
 };
 
-const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 
 const useUpdateProduct = () => {
     const queryClient = useQueryClient();
     const [searchParams] = useSearchParams();
+    const setUpdateDialog = useProductStore((state) => state.setUpdateDialog);
     const page = Number(searchParams.get("page")) || 1;
 
     const { mutate, isPending, isSuccess } = useMutation<
@@ -74,8 +76,7 @@ const useUpdateProduct = () => {
                     };
                 }
             );
-
-
+            setUpdateDialog(false)
         },
     });
 
