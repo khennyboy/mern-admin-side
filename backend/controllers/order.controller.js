@@ -11,31 +11,42 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Shared email styles
+
+// Shared email styles (Mobile Responsive)
 const emailWrapper = (title, bodyContent) => `
-  <div style="background:#f4f4f7; padding:32px 16px; font-family:Segoe UI, Arial, sans-serif;">
-    <div style="max-width:520px; margin:0 auto; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.06);">
-      <div style="background:#7c3aed; padding:24px 32px;">
-        <h1 style="margin:0; color:#ffffff; font-size:20px;">${title}</h1>
-      </div>
-      <div style="padding:32px;">
-        ${bodyContent}
-      </div>
-      <div style="padding:16px 32px; background:#fafafa; border-top:1px solid #eee;">
-        <p style="margin:0; font-size:12px; color:#999;">E-Store · This is an automated email.</p>
-      </div>
-    </div>
+  <div style="background:#f4f4f7; padding:16px 8px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; width:100%; box-sizing:border-box;">
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="max-width:520px; width:100%; margin:0 auto; background:#ffffff; border-radius:12px; overflow:hidden; border-collapse:collapse;">
+      <tr>
+        <td style="background:#7c3aed; padding:20px 24px;">
+          <h1 style="margin:0; color:#ffffff; font-size:20px; font-weight:600;">${title}</h1>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:24px 16px;">
+          ${bodyContent}
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:16px 24px; background:#fafafa; border-top:1px solid #eeeeee;">
+          <p style="margin:0; font-size:12px; color:#999999; text-align:center;">E-Store · This is an automated email.</p>
+        </td>
+      </tr>
+    </table>
   </div>
 `;
 
 const itemsTable = (items) => `
-  <table style="width:100%; border-collapse:collapse; margin:16px 0;">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="width:100%; border-collapse:collapse; margin:16px 0;">
     ${items
       .map(
         (item) => `
-      <tr style="border-bottom:1px solid #eee;">
-        <td style="padding:10px 0; font-size:14px; color:#333;">${item.name} <span style="color:#999;">×${item.quantity}</span></td>
-        <td style="padding:10px 0; font-size:14px; color:#333; text-align:right;">$${item.price}</td>
+      <tr style="border-bottom:1px solid #eeeeee;">
+        <td style="padding:10px 0; font-size:14px; color:#333333; word-break:break-word;">
+          ${item.name} <span style="color:#999999; white-space:nowrap;">×${item.quantity}</span>
+        </td>
+        <td style="padding:10px 0; font-size:14px; color:#333333; text-align:right; font-weight:500; white-space:nowrap; vertical-align:top;">
+          $${item.price}
+        </td>
       </tr>`,
       )
       .join("")}
@@ -45,15 +56,24 @@ const itemsTable = (items) => `
 // 1. Send Order Confirmation Email to Customer
 const sendCustomerOrderEmail = async (order) => {
   const body = `
-    <p style="font-size:15px; color:#333;">Hi ${order.customerName}, thanks for your order! 🎉</p>
-    <p style="font-size:14px; color:#666;">Ref: <strong>${order.paystackReference}</strong></p>
+    <p style="font-size:15px; color:#333333; margin:0 0 12px 0;">Hi ${order.customerName}, thanks for your order! 🎉</p>
+    <p style="font-size:14px; color:#666666; margin:0 0 16px 0;">Ref: <strong style="word-break:break-all;">${order.paystackReference}</strong></p>
+    
     ${itemsTable(order.items)}
-    <div style="display:flex; justify-content:space-between; padding-top:8px; border-top:2px solid #7c3aed;">
-      <span style="font-weight:600;">Total Paid</span>
-      <span style="font-weight:600;">$${order.totalAmount}</span>
+    
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="width:100%; border-top:2px solid #7c3aed; margin-top:8px; padding-top:12px;">
+      <tr>
+        <td style="font-weight:600; font-size:15px; color:#111111;">Total Paid</td>
+        <td style="font-weight:600; font-size:15px; color:#7c3aed; text-align:right;">$${order.totalAmount}</td>
+      </tr>
+    </table>
+
+    <div style="margin-top:24px; padding-top:16px; border-top:1px solid #eeeeee;">
+      <p style="font-size:14px; color:#333333; margin:0 0 4px 0;"><strong>Shipping Address:</strong></p>
+      <p style="font-size:14px; color:#666666; margin:0; line-height:1.5; word-break:break-word;">${order.shippingAddress}</p>
     </div>
-    <p style="font-size:14px; color:#666; margin-top:24px;"><strong>Shipping Address:</strong><br/>${order.shippingAddress}</p>
-    <p style="font-size:13px; color:#999; margin-top:24px;">We'll notify you once your order is out for delivery.</p>
+
+    <p style="font-size:13px; color:#999999; margin-top:24px;">We'll notify you once your order is out for delivery.</p>
   `;
 
   const mailOptions = {
@@ -73,19 +93,37 @@ const sendCustomerOrderEmail = async (order) => {
 // 2. Send New Order Alert Email to Admin
 const sendAdminOrderEmail = async (order) => {
   const body = `
-    <p style="font-size:15px; color:#333;">🚨 A new order just came in.</p>
-    <table style="width:100%; font-size:14px; color:#333; margin:16px 0;">
-      <tr><td style="padding:4px 0; color:#999;">Customer</td><td style="text-align:right;">${order.customerName}</td></tr>
-      <tr><td style="padding:4px 0; color:#999;">Email</td><td style="text-align:right;">${order.customerEmail}</td></tr>
-      <tr><td style="padding:4px 0; color:#999;">Phone</td><td style="text-align:right;">${order.phone}</td></tr>
-      <tr><td style="padding:4px 0; color:#999;">Address</td><td style="text-align:right;">${order.shippingAddress}</td></tr>
+    <p style="font-size:15px; color:#333333; margin:0 0 16px 0;">🚨 A new order just came in.</p>
+    
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="width:100%; font-size:14px; color:#333333; margin:16px 0; border-collapse:collapse;">
+      <tr>
+        <td style="padding:6px 0; color:#888888; width:30%; vertical-align:top;">Customer</td>
+        <td style="padding:6px 0; text-align:right; font-weight:500; word-break:break-word; width:70%;">${order.customerName}</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0; color:#888888; vertical-align:top;">Email</td>
+        <td style="padding:6px 0; text-align:right; font-weight:500; word-break:break-all;"><a href="mailto:${order.customerEmail}" style="color:#7c3aed; text-decoration:none;">${order.customerEmail}</a></td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0; color:#888888; vertical-align:top;">Phone</td>
+        <td style="padding:6px 0; text-align:right; font-weight:500; word-break:break-word;">${order.phone}</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0; color:#888888; vertical-align:top;">Address</td>
+        <td style="padding:6px 0; text-align:right; font-weight:500; word-break:break-word; line-height:1.4;">${order.shippingAddress}</td>
+      </tr>
     </table>
+
     ${itemsTable(order.items)}
-    <div style="display:flex; justify-content:space-between; padding-top:8px; border-top:2px solid #7c3aed;">
-      <span style="font-weight:600;">Total Paid</span>
-      <span style="font-weight:600;">$${order.totalAmount}</span>
-    </div>
-    <p style="font-size:13px; color:#999; margin-top:24px;">Log in to the admin dashboard to update the delivery status.</p>
+
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="width:100%; border-top:2px solid #7c3aed; margin-top:8px; padding-top:12px;">
+      <tr>
+        <td style="font-weight:600; font-size:15px; color:#111111;">Total Paid</td>
+        <td style="font-weight:600; font-size:15px; color:#7c3aed; text-align:right;">$${order.totalAmount}</td>
+      </tr>
+    </table>
+
+    <p style="font-size:13px; color:#999999; margin-top:24px;">Log in to the admin dashboard to update the delivery status.</p>
   `;
 
   const mailOptions = {
