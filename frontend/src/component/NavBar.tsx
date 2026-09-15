@@ -1,16 +1,30 @@
-import { Box, Button, Container, Flex, HStack, Text } from "@chakra-ui/react";
+import { Box, Badge, Button, Container, Flex, HStack, Text } from "@chakra-ui/react";
+import { useQuery } from "@tanstack/react-query";
 import { FaRegMoon } from "react-icons/fa";
 import { MdOutlineWbSunny } from "react-icons/md";
-import { LuPlus, LuLogOut } from "react-icons/lu";
+import { LuPlus, LuLogOut, LuPackage } from "react-icons/lu";
 import { Link } from "react-router-dom";
 import { useColorMode, useColorModeValue } from "../components/ui/color-mode";
 import useLogout from "../hooks/useLogout";
+
+const fetchOrdersCount = async (): Promise<number> => {
+  const res = await fetch("/api/orders/count", { credentials: "include" });
+  const data = await res.json();
+  if (!data.success) throw new Error(data.message || "Failed to fetch order count");
+  return data.count;
+};
 
 const NavBar = () => {
   const { colorMode, toggleColorMode } = useColorMode();
   const borderColor = useColorModeValue("gray.200", "gray.800");
   const bg = useColorModeValue("white", "gray.900");
   const { logout, isLoading: isLoggingOut } = useLogout();
+
+  const { data: ordersCount = 0 } = useQuery({
+    queryKey: ["orders-count"],
+    queryFn: fetchOrdersCount,
+    refetchInterval: 30000,
+  });
 
   return (
     <Box
@@ -54,6 +68,37 @@ const NavBar = () => {
           </Link>
 
           <HStack>
+            <Link to={"/orders"}>
+              <Box position="relative" display="inline-block">
+                <Button
+                  variant={"ghost"}
+                  rounded={"lg"}
+                  size={{ base: "xs", md: "sm" }}
+                >
+                  <LuPackage size={16} />
+                  <Text display={{ base: "none", sm: "block" }}>Orders</Text>
+                </Button>
+                {ordersCount > 0 && (
+                  <Badge
+                    colorPalette="red"
+                    borderRadius="full"
+                    position="absolute"
+                    top="-6px"
+                    right="-6px"
+                    minW="18px"
+                    h="18px"
+                    px={1}
+                    fontSize="10px"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                  >
+                    {ordersCount > 99 ? "99+" : ordersCount}
+                  </Badge>
+                )}
+              </Box>
+            </Link>
+
             <Link to={"/create"}>
               <Button
                 colorPalette="purple"

@@ -11,6 +11,7 @@ import ProtectedRoute from "./component/ProtectedRoute";
 import { Toaster } from "./components/ui/toaster";
 import ConfirmDeleteDialog from "./component/ConfirmDalog";
 import UpdateDialog from "./component/UpdateDialog";
+import OrdersPage from "./pages/OrdersPage";
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/create" element={<CreatePage />} />
+                <Route path="/orders" element={<OrdersPage />} />
               </Routes>
               <UpdateDialog />
               <ConfirmDeleteDialog />

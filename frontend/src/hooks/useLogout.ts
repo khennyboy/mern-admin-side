@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "../utils/toast";
 
 const logoutFn = async () => {
-  const res = await fetch("/auth/logout", {
+  const res = await fetch("/api/auth/logout", {
     method: "POST",
   });
   if (!res.ok) {

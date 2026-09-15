@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 const checkAuthFn = async () => {
-  const res = await fetch("/auth/check");
+  const res = await fetch("/api/auth/check");
   if (!res.ok) return false;
   return true;
 };

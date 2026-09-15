@@ -1,4 +1,3 @@
-// routes/products.route.js
 import express from "express";
 import {
   createProduct,

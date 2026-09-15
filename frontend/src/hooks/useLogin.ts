@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "../utils/toast";
 
 const loginFn = async (credentials: { username: string; password: string }) => {
-  const res = await fetch("/auth/login", {
+  const res = await fetch("/api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(credentials),

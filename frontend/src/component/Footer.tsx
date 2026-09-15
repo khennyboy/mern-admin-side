@@ -1,11 +1,11 @@
 import {
-    Box,
-    Link as ChakraLink,
-    Container,
-    Flex,
-    HStack,
-    Text,
-    VStack,
+  Box,
+  Link as ChakraLink,
+  Container,
+  Flex,
+  HStack,
+  Text,
+  VStack,
 } from "@chakra-ui/react";
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 import { Link } from "react-router-dom";
@@ -29,9 +29,11 @@ const Footer = () => {
         <Flex
           direction={{ base: "column", md: "row" }}
           justify={"space-between"}
+          alignItems={"center"}
+          textAlign={{ base: "center", md: "start" }}
           gap={8}
         >
-          <VStack align={"start"} gap={2}>
+          <VStack gap={2} alignItems={{ base: "center", md: "start" }}>
             <HStack gap={2}>
               <Box
                 w={7}

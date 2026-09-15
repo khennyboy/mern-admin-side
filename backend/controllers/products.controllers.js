@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import Product from "../models/products.model.js";
+import Product from "../models/product.model.js";
 
 const limit = 10;
 // get products

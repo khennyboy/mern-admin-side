@@ -23,7 +23,7 @@ const useAddProduct = () => {
         mutationFn: async (newProduct) => {
             abortControllerRef.current = new AbortController();
 
-            const res = await fetch("/products", {
+            const res = await fetch("/api/products", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

@@ -7,7 +7,7 @@ import type {
 } from "../utils/types";
 
 const fetchProducts = async (page: number, signal?: AbortSignal) => {
-  const res = await fetch(`/products?page=${page}`, {
+  const res = await fetch(`api/products?page=${page}`, {
     signal,
   });
   if (!res.ok) {
