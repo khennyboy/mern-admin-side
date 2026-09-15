@@ -252,7 +252,10 @@ export const verifyPayment = async (req, res) => {
     });
 
     const expectedAmount = Math.round(totalAmount * 100);
-    if (paystackData.data.amount !== expectedAmount) {
+    const baseAmountPaid =
+      paystackData.data.requested_amount || paystackData.data.amount;
+
+    if (baseAmountPaid !== expectedAmount) {
       return res.status(400).json({
         success: false,
         message: "Payment amount mismatch — order not created",
