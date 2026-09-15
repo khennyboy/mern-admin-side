@@ -91,7 +91,7 @@ const sendAdminOrderEmail = async (order) => {
   const mailOptions = {
     from: `"E-Store" <${process.env.EMAIL_USER}>`,
     to: process.env.ADMIN_EMAIL || process.env.EMAIL_USER,
-    subject: `🚨 New Order Received! - Ref: ${order.paystackReference}`,
+    subject: `New Order Received! - Ref: ${order.paystackReference}`,
     html: emailWrapper("New Order Alert", body),
   };
 
@@ -103,7 +103,6 @@ const sendAdminOrderEmail = async (order) => {
 };
 
 // 1. Initialize Paystack Payment
-// 1. Initialize Paystack Payment
 export const initializePayment = async (req, res) => {
   try {
     const { name, email, address, phone, items } = req.body;
@@ -113,9 +112,14 @@ export const initializePayment = async (req, res) => {
         .status(400)
         .json({ success: false, message: "No items provided" });
     }
-
+    if (!name || !email || !address || !phone) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User details is required" });
+    }
     // Recalculate everything from the DB — never trust price/totalAmount from the client
     const productIds = items.map((item) => item.product);
+    // find the products from the db from the productsId the user carted
     const products = await Product.find({ _id: { $in: productIds } });
 
     let totalAmount = 0;
@@ -267,7 +271,7 @@ export const verifyPayment = async (req, res) => {
       paidAt: new Date(),
     });
 
-    await Promise.all([
+    Promise.allSettled([
       sendCustomerOrderEmail(order),
       sendAdminOrderEmail(order),
     ]);
