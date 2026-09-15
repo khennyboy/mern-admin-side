@@ -312,7 +312,7 @@ export const verifyPayment = async (req, res) => {
       paidAt: new Date(),
     });
 
-    Promise.allSettled([
+    await Promise.allSettled([
       sendCustomerOrderEmail(order),
       sendAdminOrderEmail(order),
     ]);
