@@ -18,11 +18,13 @@ import {
   CloseButton,
 } from "@chakra-ui/react";
 import toast from "../utils/toast";
+import { useSearchParams } from "react-router-dom";
+import Custompagination from "../component/CustomPagination";
+import { computePagination } from "../utils/compute-pagination";
 
 export interface PopulatedProduct {
   _id: string;
   name: string;
-  image: string;
 }
 
 export interface OrderItem {
@@ -41,10 +43,17 @@ export interface Order {
   items: OrderItem[];
   totalAmount: number;
   paystackReference: string;
-  paymentStatus: "pending" | "success" | "failed";
   deliveryStatus: "pending" | "delivered";
   createdAt: string;
   updatedAt: string;
+}
+
+export interface OrdersResponse {
+  success: boolean;
+  data: Order[];
+  totalOrders: number;
+  pageSize: number;
+  message?: string;
 }
 
 const formatDate = (dateStr: string) =>
@@ -57,13 +66,13 @@ const formatDate = (dateStr: string) =>
     hour12: true,
   });
 
-const fetchOrders = async (): Promise<Order[]> => {
-  const res = await fetch("/api/orders", {
+const fetchOrders = async (page: number): Promise<OrdersResponse> => {
+  const res = await fetch(`/api/orders?pageO=${page}`, {
     credentials: "include",
   });
   const data = await res.json();
   if (!data.success) throw new Error(data.message || "Failed to fetch orders");
-  return data.orders;
+  return data;
 };
 
 const deliverOrder = async (id: string) => {
@@ -80,11 +89,32 @@ const OrdersPage = () => {
   const queryClient = useQueryClient();
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
 
-  const { data: orders = [], isLoading } = useQuery({
-    queryKey: ["admin-orders"],
-    queryFn: fetchOrders,
-  });
+  const [searchParams, setSearchParams] = useSearchParams();
+  // get the page number from searchParams
+  const page = Number(searchParams.get("pageO")) || 1;
 
+  // link to go to any page
+  const goToPage = (nextPage: number) => {
+    setSearchParams((prev) => {
+      prev.set("page)", String(nextPage));
+      return prev;
+    });
+  };
+
+  // tanstack orders fxn
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin-orders", page],
+    queryFn: () => fetchOrders(page),
+  });
+  const orders = data?.data || [];
+  console.log(orders)
+  const pagination = computePagination(
+    page,
+    data?.totalOrders || 0,
+    data?.pageSize || 10,
+  );
+
+  // tanstack mark fxns
   const { mutate: markDelivered, isPending } = useMutation({
     mutationFn: deliverOrder,
     onSuccess: () => {
@@ -113,22 +143,24 @@ const OrdersPage = () => {
           </Center>
         ) : (
           <Box overflowX="auto">
-            <Table.Root variant="line" minW="900px" w="full">
+            <Table.Root variant={"line"} w="full">
               <Table.Header>
                 <Table.Row>
-                  <Table.ColumnHeader>Items</Table.ColumnHeader>
-                  <Table.ColumnHeader>Customer</Table.ColumnHeader>
-                  <Table.ColumnHeader>Amount</Table.ColumnHeader>
-                  <Table.ColumnHeader>Address</Table.ColumnHeader>
-                  <Table.ColumnHeader>Date Ordered</Table.ColumnHeader>
-                  <Table.ColumnHeader>Status</Table.ColumnHeader>
-                  <Table.ColumnHeader>Action</Table.ColumnHeader>
+                  <Table.ColumnHeader minW="150px">Items</Table.ColumnHeader>
+                  <Table.ColumnHeader minW="220px">Customer</Table.ColumnHeader>
+                  <Table.ColumnHeader minW="90px">Amount</Table.ColumnHeader>
+                  <Table.ColumnHeader minW="320px">Address</Table.ColumnHeader>
+                  <Table.ColumnHeader minW="140px">
+                    Date Ordered
+                  </Table.ColumnHeader>
+                  <Table.ColumnHeader minW="110px">Status</Table.ColumnHeader>
+                  <Table.ColumnHeader minW="130px">Action</Table.ColumnHeader>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
                 {orders.map((order) => (
                   <Table.Row key={order._id}>
-                    <Table.Cell verticalAlign="middle" py={4} maxW="220px">
+                    <Table.Cell verticalAlign="middle" py={4}>
                       <Box fontSize="sm">
                         <VStack align="start" gap={0.5}>
                           {order.items.slice(0, 2).map((item) => (
@@ -270,6 +302,11 @@ const OrdersPage = () => {
           </Dialog.Positioner>
         </Portal>
       </Dialog.Root>
+      <Custompagination
+        pagination={pagination}
+        page={page}
+        onPageChange={goToPage}
+      />
     </Box>
   );
 };

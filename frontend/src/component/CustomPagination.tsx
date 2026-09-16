@@ -3,19 +3,19 @@ import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 import type { Pagination as PaginationData } from "../utils/types";
 import { useEffect } from "react";
 
-interface ProductPaginationProps {
+interface PaginationProps {
   pagination: PaginationData;
   page: number;
   onPageChange: (page: number) => void;
 }
 
-const Productpagination = ({
+const CustomPagination = ({
   pagination,
   page,
   onPageChange,
-}: ProductPaginationProps) => {
+}: PaginationProps) => {
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" }); 
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [page]);
   if (!pagination || pagination.totalPages <= 1) return null;
 
@@ -56,4 +56,4 @@ const Productpagination = ({
   );
 };
 
-export default Productpagination;
+export default CustomPagination;

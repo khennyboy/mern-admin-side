@@ -4,9 +4,8 @@ import Product from "../models/product.model.js";
 
 // Setup Nodemailer Transporter
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
+  service: "gmail",
+
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -309,7 +308,6 @@ export const verifyPayment = async (req, res) => {
       items: verifiedItems,
       totalAmount,
       paystackReference: reference,
-      paymentStatus: "success",
       paidAt: new Date(),
     });
 
@@ -328,13 +326,24 @@ export const verifyPayment = async (req, res) => {
   }
 };
 
+const limit = 10;
 // 3. Admin: Get all successful orders
 export const getOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ paymentStatus: "success" })
-      .populate("items.product", "image name")
-      .sort({ createdAt: -1 });
-    res.status(200).json({ success: true, orders });
+    const page = parseInt(req.query.pageO) || 1;
+    const skip = (page - 1) * limit;
+    const [totalOrders, orders] = await Promise.all([
+      Order.countDocuments(),
+      Order.find()
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate("items.product", "name"),
+    ]);
+
+    return res
+      .status(200)
+      .json({ success: true, data: orders, totalOrders, pageSize: limit });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -344,7 +353,6 @@ export const getOrders = async (req, res) => {
 export const getOrdersCount = async (req, res) => {
   try {
     const count = await Order.countDocuments({
-      paymentStatus: "success",
       deliveryStatus: "pending",
     });
     res.status(200).json({ success: true, count });

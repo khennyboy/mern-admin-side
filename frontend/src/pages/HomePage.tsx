@@ -16,10 +16,11 @@ import ProductCard from "../component/product-card";
 import { IoWarning } from "react-icons/io5";
 import { useColorModeValue } from "../components/ui/color-mode";
 import useGetProducts from "../hooks/useGetProducts";
-import Productpagination from "../component/Productpagination";
+
 import { useProductStore } from "../store/product-store";
 import { useShallow } from "zustand/react/shallow";
 import { computePagination } from "../utils/compute-pagination";
+import CustomPagination from "../component/CustomPagination";
 
 const HomePage = () => {
   const subTextColor = useColorModeValue("gray.500", "gray.400");
@@ -146,7 +147,7 @@ const HomePage = () => {
               ))}
             </SimpleGrid>
 
-            <Productpagination
+            <CustomPagination
               pagination={pagination}
               page={page}
               onPageChange={goToPage}
