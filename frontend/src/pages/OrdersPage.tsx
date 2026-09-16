@@ -107,7 +107,7 @@ const OrdersPage = () => {
     queryFn: () => fetchOrders(page),
   });
   const orders = data?.data || [];
-  console.log(orders)
+  console.log(orders);
   const pagination = computePagination(
     page,
     data?.totalOrders || 0,
@@ -143,9 +143,10 @@ const OrdersPage = () => {
           </Center>
         ) : (
           <Box overflowX="auto">
-            <Table.Root variant={"line"} w="full">
+            <Table.Root variant={"line"}>
               <Table.Header>
                 <Table.Row>
+                  <Table.ColumnHeader>S/N</Table.ColumnHeader>
                   <Table.ColumnHeader minW="150px">Items</Table.ColumnHeader>
                   <Table.ColumnHeader minW="220px">Customer</Table.ColumnHeader>
                   <Table.ColumnHeader minW="90px">Amount</Table.ColumnHeader>
@@ -158,8 +159,11 @@ const OrdersPage = () => {
                 </Table.Row>
               </Table.Header>
               <Table.Body>
-                {orders.map((order) => (
+                {orders.map((order, index) => (
                   <Table.Row key={order._id}>
+                    <Table.Cell verticalAlign="middle" py={4}>
+                      {index + 1}.
+                    </Table.Cell>
                     <Table.Cell verticalAlign="middle" py={4}>
                       <Box fontSize="sm">
                         <VStack align="start" gap={0.5}>
