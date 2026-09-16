@@ -7,6 +7,7 @@ import productRoutes from "./routes/products.route.js";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.route.js";
 import orderRoutes from "./routes/order.route.js";
+// import paystackRoutes from "./routes/webhook.route.js";
 import cors from "cors";
 
 const app = express();
@@ -20,6 +21,7 @@ app.use(
   }),
 );
 
+// app.use("/api/paystack", paystackRoutes);
 app.use(express.json());
 app.use(cookieParser());
 
