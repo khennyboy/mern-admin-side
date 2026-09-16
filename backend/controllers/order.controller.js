@@ -7,7 +7,6 @@ const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 465,
   secure: true,
-  // service: "gmail",
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -77,7 +76,7 @@ const sendCustomerOrderEmail = async (order) => {
 
     <p style="font-size:13px; color:#999999; margin-top:24px;">We'll notify you once your order is out for delivery.</p>
   `;
-
+  // send customer mail
   const mailOptions = {
     from: `"E-Store" <${process.env.EMAIL_USER}>`,
     to: order.customerEmail,
