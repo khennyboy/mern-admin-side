@@ -48,39 +48,39 @@ const itemsTable = (items) => `
 `;
 
 // 1. Send Order Confirmation Email to Customer
-const sendCustomerOrderEmail = async (order) => {
-  const body = `
-    <p style="font-size:15px; color:#333333; margin:0 0 12px 0;">Hi ${order.customerName}, thanks for your order! 🎉</p>
-    <p style="font-size:14px; color:#666666; margin:0 0 16px 0;">Ref: <strong style="word-break:break-all;">${order.paystackReference}</strong></p>
+// const sendCustomerOrderEmail = async (order) => {
+//   const body = `
+//     <p style="font-size:15px; color:#333333; margin:0 0 12px 0;">Hi ${order.customerName}, thanks for your order! 🎉</p>
+//     <p style="font-size:14px; color:#666666; margin:0 0 16px 0;">Ref: <strong style="word-break:break-all;">${order.paystackReference}</strong></p>
     
-    ${itemsTable(order.items)}
+//     ${itemsTable(order.items)}
     
-    <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="width:100%; border-top:2px solid #7c3aed; margin-top:8px; padding-top:12px;">
-      <tr>
-        <td style="font-weight:600; font-size:15px; color:#111111;">Total Paid</td>
-        <td style="font-weight:600; font-size:15px; color:#7c3aed; text-align:right;">$${order.totalAmount}</td>
-      </tr>
-    </table>
+//     <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="width:100%; border-top:2px solid #7c3aed; margin-top:8px; padding-top:12px;">
+//       <tr>
+//         <td style="font-weight:600; font-size:15px; color:#111111;">Total Paid</td>
+//         <td style="font-weight:600; font-size:15px; color:#7c3aed; text-align:right;">$${order.totalAmount}</td>
+//       </tr>
+//     </table>
 
-    <div style="margin-top:24px; padding-top:16px; border-top:1px solid #eeeeee;">
-      <p style="font-size:14px; color:#333333; margin:0 0 4px 0;"><strong>Shipping Address:</strong></p>
-      <p style="font-size:14px; color:#666666; margin:0; line-height:1.5; word-break:break-word;">${order.shippingAddress}</p>
-    </div>
+//     <div style="margin-top:24px; padding-top:16px; border-top:1px solid #eeeeee;">
+//       <p style="font-size:14px; color:#333333; margin:0 0 4px 0;"><strong>Shipping Address:</strong></p>
+//       <p style="font-size:14px; color:#666666; margin:0; line-height:1.5; word-break:break-word;">${order.shippingAddress}</p>
+//     </div>
 
-    <p style="font-size:13px; color:#999999; margin-top:24px;">We'll notify you once your order is out for delivery.</p>
-  `;
+//     <p style="font-size:13px; color:#999999; margin-top:24px;">We'll notify you once your order is out for delivery.</p>
+//   `;
 
-  try {
-    await resend.emails.send({
-      from: FROM_ADDRESS,
-      to: order.customerEmail,
-      subject: `Order Confirmation - Ref: ${order.paystackReference}`,
-      html: emailWrapper("Order Confirmed", body),
-    });
-  } catch (error) {
-    console.error("Failed to send customer email:", error.message);
-  }
-};
+//   try {
+//     await resend.emails.send({
+//       from: FROM_ADDRESS,
+//       to: order.customerEmail,
+//       subject: `Order Confirmation - Ref: ${order.paystackReference}`,
+//       html: emailWrapper("Order Confirmed", body),
+//     });
+//   } catch (error) {
+//     console.error("Failed to send customer email:", error.message);
+//   }
+// };
 
 // 2. Send New Order Alert Email to Admin
 const sendAdminOrderEmail = async (order) => {
@@ -295,7 +295,7 @@ export const verifyPayment = async (req, res) => {
 
     // Await email delivery safely using Promise.allSettled
     await Promise.allSettled([
-      sendCustomerOrderEmail(order),
+      // sendCustomerOrderEmail(order),
       sendAdminOrderEmail(order),
     ]);
 
