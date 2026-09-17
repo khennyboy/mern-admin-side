@@ -1,6 +1,6 @@
 import Order from "../models/order.model.js";
 import Product from "../models/product.model.js";
-import { sendAdminOrderEmail } from "../services/Email.js";
+import { sendAdminOrderEmail } from "../services/email.js";
 // 1. Initialize Paystack Payment
 export const initializePayment = async (req, res) => {
   try {
