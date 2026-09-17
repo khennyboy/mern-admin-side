@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import Order from "../models/order.model.js";
 import Product from "../models/product.model.js";
-import { sendAdminOrderEmail } from "../services/Email.js";
+import { sendAdminOrderEmail } from "../services/email.js";
 
 export const handlePaystackWebhook = async (req, res) => {
   const signature = req.headers["x-paystack-signature"];
