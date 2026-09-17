@@ -7,10 +7,13 @@ import productRoutes from "./routes/products.route.js";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.route.js";
 import orderRoutes from "./routes/order.route.js";
-// import paystackRoutes from "./routes/webhook.route.js";
+import webhookRoutes from "./routes/webhook.route.js";
 import cors from "cors";
 
 const app = express();
+app.use("/api/webhook", webhookRoutes);
+app.use(express.json());
+
 const PORT = process.env.PORT || 8000;
 const __dirname = path.resolve();
 
