@@ -4,13 +4,30 @@ import Product from "../models/product.model.js";
 
 // Setup Nodemailer Transporter
 const transporter = nodemailer.createTransport({
-  service: "gmail",
-
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    pass: process.env.EMAIL_PASS, // Must be a 16-character App Password
+  },
+  tls: {
+    rejectUnauthorized: false, // Helps bypass host-level TLS restrictions
   },
 });
+
+// Helper function to send email wrapped in a Promise
+const sendMailAsync = (mailOptions) => {
+  return new Promise((resolve, reject) => {
+    transporter.sendMail(mailOptions, (err, info) => {
+      if (err) {
+        console.error("Nodemailer Send Error:", err);
+        return reject(err);
+      }
+      resolve(info);
+    });
+  });
+};
 
 // Shared email styles (Mobile Responsive)
 const emailWrapper = (title, bodyContent) => `
@@ -75,7 +92,7 @@ const sendCustomerOrderEmail = async (order) => {
 
     <p style="font-size:13px; color:#999999; margin-top:24px;">We'll notify you once your order is out for delivery.</p>
   `;
-  // send customer mail
+
   const mailOptions = {
     from: `"E-Store" <${process.env.EMAIL_USER}>`,
     to: order.customerEmail,
@@ -84,7 +101,7 @@ const sendCustomerOrderEmail = async (order) => {
   };
 
   try {
-    await transporter.sendMail(mailOptions);
+    await sendMailAsync(mailOptions);
   } catch (error) {
     console.error("Failed to send customer email:", error.message);
   }
@@ -134,7 +151,7 @@ const sendAdminOrderEmail = async (order) => {
   };
 
   try {
-    await transporter.sendMail(mailOptions);
+    await sendMailAsync(mailOptions);
   } catch (error) {
     console.error("Failed to send admin email:", error.message);
   }
@@ -155,9 +172,8 @@ export const initializePayment = async (req, res) => {
         .status(400)
         .json({ success: false, message: "User details is required" });
     }
-    // Recalculate everything from the DB — never trust price/totalAmount from the client
+
     const productIds = items.map((item) => item.product);
-    // find the products from the db from the productsId the user carted
     const products = await Product.find({ _id: { $in: productIds } });
 
     let totalAmount = 0;
@@ -178,9 +194,6 @@ export const initializePayment = async (req, res) => {
 
     const reference = `REF_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
 
-    // No DB write here anymore — the order is only created once payment is
-    // confirmed in verifyPayment. Everything needed to build it is carried
-    // through Paystack's metadata for this reference.
     const paystackPayload = {
       email,
       amount: Math.round(totalAmount * 100),
@@ -249,8 +262,6 @@ export const verifyPayment = async (req, res) => {
         .json({ success: false, message: "Payment verification failed" });
     }
 
-    // Idempotency: if this reference already produced an order (e.g. the user
-    // hits this endpoint twice, or you later add a webhook), just return it.
     const existingOrder = await Order.findOne({ paystackReference: reference });
     if (existingOrder) {
       return res.status(200).json({
@@ -268,8 +279,6 @@ export const verifyPayment = async (req, res) => {
       });
     }
 
-    // Recompute the total fresh from the DB (never trust metadata prices) and
-    // cross-check it against what Paystack actually charged.
     const productIds = metadata.items.map((item) => item.product);
     const products = await Product.find({ _id: { $in: productIds } });
 
@@ -311,6 +320,7 @@ export const verifyPayment = async (req, res) => {
       paidAt: new Date(),
     });
 
+    // Await email delivery safely using Promise.allSettled
     await Promise.allSettled([
       sendCustomerOrderEmail(order),
       sendAdminOrderEmail(order),
@@ -349,7 +359,7 @@ export const getOrders = async (req, res) => {
   }
 };
 
-// 4. Admin: Get count of orders awaiting delivery (for the nav badge)
+// 4. Admin: Get count of orders awaiting delivery
 export const getOrdersCount = async (req, res) => {
   try {
     const count = await Order.countDocuments({
