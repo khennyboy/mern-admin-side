@@ -42,7 +42,7 @@ export const initializePayment = async (req, res) => {
       email,
       amount: Math.round(totalAmount * 100),
       reference,
-      // callback_url: `${process.env.CUSTOMER_URL}/payment-verify?reference=${reference}`,
+      callback_url: `${process.env.CUSTOMER_URL}/payment-verify?reference=${reference}`,
       metadata: {
         customerName: name,
         customerEmail: email,
