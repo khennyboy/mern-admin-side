@@ -88,6 +88,7 @@ const deliverOrder = async (id: string) => {
 const OrdersPage = () => {
   const queryClient = useQueryClient();
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
 
   const [searchParams, setSearchParams] = useSearchParams();
   // get the page number from searchParams
@@ -107,8 +108,9 @@ const OrdersPage = () => {
     queryFn: () => fetchOrders(page),
     refetchInterval: 30000,
   });
+
   const orders = data?.data || [];
-  console.log(orders);
+
   const pagination = computePagination(
     page,
     data?.totalOrders || 0,
@@ -116,13 +118,15 @@ const OrdersPage = () => {
   );
 
   // tanstack mark fxns
-  const { mutate: markDelivered, isPending } = useMutation({
+  const { mutate: markDelivered } = useMutation({
     mutationFn: deliverOrder,
+    onMutate: (id) => setPendingOrderId(id),
     onSuccess: () => {
       toast(true, "Order marked as delivered!");
       queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
       queryClient.invalidateQueries({ queryKey: ["orders-count"] });
     },
+    onSettled: () => setPendingOrderId(null),
   });
 
   if (isLoading) {
@@ -227,9 +231,10 @@ const OrdersPage = () => {
                     <Table.Cell verticalAlign="middle" py={4}>
                       {order.deliveryStatus !== "delivered" && (
                         <Button
+                          disabled={pendingOrderId === order._id}
                           size="xs"
                           colorPalette="green"
-                          loading={isPending}
+                          loading={pendingOrderId === order._id}
                           onClick={() => markDelivered(order._id)}
                         >
                           Mark Completed
