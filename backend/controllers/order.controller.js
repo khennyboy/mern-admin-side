@@ -1,33 +1,10 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import Order from "../models/order.model.js";
 import Product from "../models/product.model.js";
 
-// Setup Nodemailer Transporter
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // Must be a 16-character App Password
-  },
-  tls: {
-    rejectUnauthorized: false, // Helps bypass host-level TLS restrictions
-  },
-});
-
-// Helper function to send email wrapped in a Promise
-const sendMailAsync = (mailOptions) => {
-  return new Promise((resolve, reject) => {
-    transporter.sendMail(mailOptions, (err, info) => {
-      if (err) {
-        console.error("Nodemailer Send Error:", err);
-        return reject(err);
-      }
-      resolve(info);
-    });
-  });
-};
+// Setup Resend Client
+const resend = new Resend(process.env.RESEND_API_KEY);
+const FROM_ADDRESS = '"E-Store" <onboarding@resend.dev>';
 
 // Shared email styles (Mobile Responsive)
 const emailWrapper = (title, bodyContent) => `
@@ -93,15 +70,13 @@ const sendCustomerOrderEmail = async (order) => {
     <p style="font-size:13px; color:#999999; margin-top:24px;">We'll notify you once your order is out for delivery.</p>
   `;
 
-  const mailOptions = {
-    from: `"E-Store" <${process.env.EMAIL_USER}>`,
-    to: order.customerEmail,
-    subject: `Order Confirmation - Ref: ${order.paystackReference}`,
-    html: emailWrapper("Order Confirmed", body),
-  };
-
   try {
-    await sendMailAsync(mailOptions);
+    await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: order.customerEmail,
+      subject: `Order Confirmation - Ref: ${order.paystackReference}`,
+      html: emailWrapper("Order Confirmed", body),
+    });
   } catch (error) {
     console.error("Failed to send customer email:", error.message);
   }
@@ -143,15 +118,13 @@ const sendAdminOrderEmail = async (order) => {
     <p style="font-size:13px; color:#999999; margin-top:24px;">Log in to the admin dashboard to update the delivery status.</p>
   `;
 
-  const mailOptions = {
-    from: `"E-Store" <${process.env.EMAIL_USER}>`,
-    to: process.env.ADMIN_EMAIL || process.env.EMAIL_USER,
-    subject: `New Order Received! - Ref: ${order.paystackReference}`,
-    html: emailWrapper("New Order Alert", body),
-  };
-
   try {
-    await sendMailAsync(mailOptions);
+    await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: process.env.EMAIL_USER,
+      subject: `New Order Received! - Ref: ${order.paystackReference}`,
+      html: emailWrapper("New Order Alert", body),
+    });
   } catch (error) {
     console.error("Failed to send admin email:", error.message);
   }
