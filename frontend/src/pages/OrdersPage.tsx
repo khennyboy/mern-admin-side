@@ -125,8 +125,8 @@ const OrdersPage = () => {
       toast(true, "Order marked as delivered!");
       queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
       queryClient.invalidateQueries({ queryKey: ["orders-count"] });
+      setPendingOrderId(null);
     },
-    onSettled: () => setPendingOrderId(null),
   });
 
   if (isLoading) {
