@@ -18,7 +18,6 @@ function App() {
   return (
     <Box minH={"100vh"} bg={useColorModeValue("gray.50", "gray.950")}>
       <Routes>
-        <Route path="*" element={<NotFoundPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route
           path="/*"
@@ -29,6 +28,7 @@ function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/create" element={<CreatePage />} />
                 <Route path="/orders" element={<OrdersPage />} />
+                <Route path="*" element={<NotFoundPage />} />
               </Routes>
               <UpdateDialog />
               <ConfirmDeleteDialog />
