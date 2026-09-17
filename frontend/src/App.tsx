@@ -12,11 +12,13 @@ import { Toaster } from "./components/ui/toaster";
 import ConfirmDeleteDialog from "./component/ConfirmDalog";
 import UpdateDialog from "./component/UpdateDialog";
 import OrdersPage from "./pages/OrdersPage";
+import NotFoundPage from "./pages/NotFound";
 
 function App() {
   return (
     <Box minH={"100vh"} bg={useColorModeValue("gray.50", "gray.950")}>
       <Routes>
+        <Route path="*" element={<NotFoundPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route
           path="/*"

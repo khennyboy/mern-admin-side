@@ -105,7 +105,7 @@ const OrdersPage = () => {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-orders", page],
     queryFn: () => fetchOrders(page),
-    refetchOnMount: true,
+    refetchInterval: 30000,
   });
   const orders = data?.data || [];
   console.log(orders);
