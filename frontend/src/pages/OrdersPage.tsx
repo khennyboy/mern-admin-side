@@ -118,15 +118,25 @@ const OrdersPage = () => {
   );
 
   // tanstack mark fxns
-  const { mutate: markDelivered } = useMutation({
+  // tanstack mark fxns
+  const { mutate: markDelivered, isPending } = useMutation({
     mutationFn: deliverOrder,
-    onMutate: (id) => setPendingOrderId(id),
-    onSuccess: () => {
+    onMutate: (id) => {
+      setPendingOrderId(id);
+    },
+    onSuccess: async () => {
       toast(true, "Order marked as delivered!");
-      queryClient
-        .invalidateQueries({ queryKey: ["admin-orders"] })
-        .then(() => setPendingOrderId(null));
-      queryClient.invalidateQueries({ queryKey: ["orders-count"] });
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["admin-orders"] }),
+        queryClient.invalidateQueries({ queryKey: ["orders-count"] }),
+      ]);
+    },
+    onError: (error) => {
+      toast(false, error.message || "Failed to update order");
+    },
+    onSettled: () => {
+      setPendingOrderId(null);
     },
   });
 
@@ -232,7 +242,7 @@ const OrdersPage = () => {
                     <Table.Cell verticalAlign="middle" py={4}>
                       {order.deliveryStatus !== "delivered" && (
                         <Button
-                          disabled={pendingOrderId === order._id}
+                          disabled={pendingOrderId === order._id || isPending}
                           size="xs"
                           colorPalette="green"
                           loading={pendingOrderId === order._id}
