@@ -123,10 +123,11 @@ const OrdersPage = () => {
     onMutate: (id) => setPendingOrderId(id),
     onSuccess: () => {
       toast(true, "Order marked as delivered!");
-      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      queryClient
+        .invalidateQueries({ queryKey: ["admin-orders"] })
+        .then(() => setPendingOrderId(null));
       queryClient.invalidateQueries({ queryKey: ["orders-count"] });
     },
-    onSettled: () => setPendingOrderId(null),
   });
 
   if (isLoading) {

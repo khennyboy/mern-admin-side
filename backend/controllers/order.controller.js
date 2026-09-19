@@ -172,7 +172,7 @@ export const verifyPayment = async (req, res) => {
       .json({ success: true, message: "Payment verified successfully", order });
 
     sendAdminOrderEmail(order);
-    sendCustomerOrderEmail(order);
+    // sendCustomerOrderEmail(order);
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -220,7 +220,7 @@ export const markOrderDelivered = async (req, res) => {
     const order = await Order.findByIdAndUpdate(
       id,
       { deliveryStatus: "delivered" },
-      { new: true },
+      { returnDocument: "after" },
     );
     res.status(200).json({ success: true, order });
   } catch (error) {
