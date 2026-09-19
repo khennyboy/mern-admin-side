@@ -97,7 +97,7 @@ const OrdersPage = () => {
   // link to go to any page
   const goToPage = (nextPage: number) => {
     setSearchParams((prev) => {
-      prev.set("page)", String(nextPage));
+      prev.set("pageO", String(nextPage));
       return prev;
     });
   };
