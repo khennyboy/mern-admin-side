@@ -119,7 +119,7 @@ const OrdersPage = () => {
 
   // tanstack mark fxns
   // tanstack mark fxns
-  const { mutate: markDelivered, isPending } = useMutation({
+  const { mutate: markDelivered } = useMutation({
     mutationFn: deliverOrder,
     onMutate: (id) => {
       setPendingOrderId(id);
@@ -242,7 +242,7 @@ const OrdersPage = () => {
                     <Table.Cell verticalAlign="middle" py={4}>
                       {order.deliveryStatus !== "delivered" && (
                         <Button
-                          disabled={pendingOrderId === order._id || isPending}
+                          disabled={pendingOrderId === order._id}
                           size="xs"
                           colorPalette="green"
                           loading={pendingOrderId === order._id}
