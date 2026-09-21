@@ -31,6 +31,7 @@ const useUpdateProduct = () => {
             api(`/products/${id}`, { method: "PUT", body: product }),
 
         onError: (err) => {
+            if (err.message.includes("Session expired")) return;
             toast(false, err.message);
         },
         onSuccess: (_, { id, product }) => {

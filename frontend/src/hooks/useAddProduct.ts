@@ -38,6 +38,7 @@ const useAddProduct = () => {
         },
         onError: (err) => {
             if (err.name === "AbortError") return; // silently ignore — user navigated away on purpose
+            if (err.message.includes("Session expired")) return;
             toast(false, err.message);
         },
     });

@@ -51,6 +51,7 @@ const useDeleteProduct = () => {
                 setProducts(context.products);
                 setCounts(context.totalProducts, context.pageSize);
             }
+            if (err.message.includes("Session expired")) return;
             toast(false, err.message);
         },
         onSuccess: () => {

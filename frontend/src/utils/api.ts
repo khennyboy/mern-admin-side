@@ -1,3 +1,5 @@
+import toast from "./toast";
+
 // lib/api.ts
 let refreshPromise: Promise<boolean> | null = null;
 
@@ -30,7 +32,8 @@ export const api = async (
 
         const refreshed = await refreshPromise;
         if (!refreshed) {
-            window.location.replace('/login')
+            setTimeout(() => window.location.replace("/login"), 2000);
+            toast(false, "Session expired. Redirecting...")
             throw new Error("Session expired");
         }
 

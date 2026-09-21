@@ -9,6 +9,8 @@ const useCheckAuth = () => {
     queryKey: ["auth"],
     queryFn: checkAuthFn,
     retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false
   });
 
   return { isAuthenticated: !!data, isLoading };
