@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 
 export const ACCESS_TTL_MS = 15 * 60 * 1000; // 15 minutes
-export const REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+export const REFRESH_TTL_MS = 2 * 24 * 60 * 60 * 1000; // 2 days
 
 export const signAccessToken = (admin) =>
   jwt.sign(
@@ -15,7 +15,7 @@ export const signRefreshToken = (admin) =>
   jwt.sign(
     { id: admin._id, jti: crypto.randomUUID() },
     process.env.JWT_REFRESH_SECRET,
-    { expiresIn: "7d" },
+    { expiresIn: "2d" },
   );
 
 export const hashToken = (token) =>
