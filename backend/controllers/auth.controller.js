@@ -1,8 +1,33 @@
-// controllers/auth.controller.js
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import Admin from "../models/admin.model.js";
+import RefreshToken from "../models/refreshToken.model.js";
+import {
+  signAccessToken,
+  signRefreshToken,
+  hashToken,
+  accessCookieOptions,
+  refreshCookieOptions,
+  clearAuthCookies,
+  REFRESH_TTL_MS,
+} from "../utils/tokens.js";
 
+// Creates both tokens, saves the refresh token hash, sets both cookies
+const issueTokens = async (res, admin) => {
+  const accessToken = signAccessToken(admin);
+  const refreshToken = signRefreshToken(admin);
+
+  await RefreshToken.create({
+    admin: admin._id,
+    tokenHash: hashToken(refreshToken),
+    expiresAt: new Date(Date.now() + REFRESH_TTL_MS),
+  });
+
+  res.cookie("accessToken", accessToken, accessCookieOptions);
+  res.cookie("refreshToken", refreshToken, refreshCookieOptions);
+};
+
+// login fxn
 export const login = async (req, res) => {
   const { username, password } = req.body;
 
@@ -30,18 +55,7 @@ export const login = async (req, res) => {
         .json({ success: false, message: "Invalid credentials" });
     }
 
-    const token = jwt.sign(
-      { id: admin._id, username: admin.username, },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" },
-    );
-
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
+    await issueTokens(res, admin);
 
     return res
       .status(200)
@@ -52,14 +66,70 @@ export const login = async (req, res) => {
   }
 };
 
-export const logout = (req, res) => {
-  res.clearCookie("token");
+// refresh fxn
+export const refresh = async (req, res) => {
+  const oldToken = req.cookies?.refreshToken;
+
+  if (!oldToken) {
+    return res
+      .status(401)
+      .json({ success: false, message: "No refresh token" });
+  }
+
+  try {
+    const payload = jwt.verify(oldToken, process.env.JWT_REFRESH_SECRET);
+
+    const stored = await RefreshToken.findOneAndDelete({
+      tokenHash: hashToken(oldToken),
+    });
+
+    if (!stored) {
+      await RefreshToken.deleteMany({ admin: payload.id });
+      clearAuthCookies(res);
+      return res
+        .status(401)
+        .json({ success: false, message: "Refresh token reused" });
+    }
+
+    const admin = await Admin.findById(payload.id);
+
+    if (!admin) {
+      clearAuthCookies(res);
+      return res
+        .status(401)
+        .json({ success: false, message: "Admin not found" });
+    }
+
+    await issueTokens(res, admin);
+
+    return res.status(200).json({ success: true, message: "Token refreshed" });
+  } catch (error) {
+    clearAuthCookies(res);
+    return res
+      .status(401)
+      .json({ success: false, message: "Invalid refresh token" });
+  }
+};
+
+// logout fxn
+export const logout = async (req, res) => {
+  try {
+    const token = req.cookies?.refreshToken;
+
+    if (token) {
+      await RefreshToken.deleteOne({ tokenHash: hashToken(token) });
+    }
+  } catch (error) {
+    console.log("Error logging out:", error.message);
+  }
+
+  clearAuthCookies(res);
   return res
     .status(200)
     .json({ success: true, message: "Logged out successfully" });
 };
 
-export const checkAuth = (req, res) => {
-  // if this runs, the protect middleware already validated the token
+// check auth fxn
+export const checkAuth = (_, res) => {
   return res.status(200).json({ success: true, message: "Authenticated" });
 };

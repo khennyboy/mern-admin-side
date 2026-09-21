@@ -1,4 +1,12 @@
-import { Box, Badge, Button, Container, Flex, HStack, Text } from "@chakra-ui/react";
+import {
+  Box,
+  Badge,
+  Button,
+  Container,
+  Flex,
+  HStack,
+  Text,
+} from "@chakra-ui/react";
 import { useQuery } from "@tanstack/react-query";
 import { FaRegMoon } from "react-icons/fa";
 import { MdOutlineWbSunny } from "react-icons/md";
@@ -6,11 +14,10 @@ import { LuPlus, LuLogOut, LuPackage } from "react-icons/lu";
 import { Link } from "react-router-dom";
 import { useColorMode, useColorModeValue } from "../components/ui/color-mode";
 import useLogout from "../hooks/useLogout";
+import { api } from "../utils/api";
 
 const fetchOrdersCount = async (): Promise<number> => {
-  const res = await fetch("/api/orders/count", { credentials: "include" });
-  const data = await res.json();
-  if (!data.success) throw new Error(data.message || "Failed to fetch order count");
+  const data = await api("/orders/count");
   return data.count;
 };
 

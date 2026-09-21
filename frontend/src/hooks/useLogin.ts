@@ -1,26 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import toast from "../utils/toast";
+import { api } from "../utils/api";
 
-const loginFn = async (credentials: { username: string; password: string }) => {
-  const res = await fetch("/api/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(credentials),
-  });
-  console.log(res)
-  if (!res.ok) {
-    const errorJson = await res.json().catch(
-      () => ({
-        success: false,
-        message: "An unknown network error occurred",
-      }),
-    );
-    throw new Error(errorJson.message);
-  }
-  const data = await res.json();
-  return data;
-};
+
+const loginFn = (credentials: { username: string; password: string }) =>
+  api("/auth/login", { method: "POST", body: credentials });
 
 const useLogin = () => {
   const navigate = useNavigate();

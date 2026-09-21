@@ -1,8 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useRef, useEffect } from "react";
+import { api } from "../utils/api";
 import toast from "../utils/toast";
-import type { CreateProductErrorResponse, Product, ProductDetail } from "../utils/types";
+import type { Product, ProductDetail } from "../utils/types";
 
 const useAddProduct = () => {
     const queryClient = useQueryClient();
@@ -23,24 +24,11 @@ const useAddProduct = () => {
         mutationFn: async (newProduct) => {
             abortControllerRef.current = new AbortController();
 
-            const res = await fetch("/api/products", {
+            const json = await api("/products", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(newProduct),
+                body: newProduct,
                 signal: abortControllerRef.current.signal,
             });
-            if (!res.ok) {
-                const errorJson: CreateProductErrorResponse = await res.json().catch(
-                    (): CreateProductErrorResponse => ({
-                        success: false,
-                        message: "An unknown network error occurred.",
-                    })
-                );
-                throw new Error(errorJson.message);
-            }
-            const json = await res.json();
             return json.data;
         },
         onSuccess: () => {

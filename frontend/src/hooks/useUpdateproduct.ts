@@ -8,6 +8,7 @@ import type {
 } from "../utils/types";
 import { useProductStore } from "../store/product-store";
 import { capitalize } from "../utils/capitalize";
+import { api } from "../utils/api";
 
 type UpdateParameter = {
     product: Product;
@@ -26,28 +27,9 @@ const useUpdateProduct = () => {
         Error,
         UpdateParameter
     >({
-        mutationFn: async ({ id, product }) => {
-            const res = await fetch(`/api/products/${id}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                credentials: "include",
-                body: JSON.stringify(product),
-            });
+        mutationFn: ({ id, product }) =>
+            api(`/products/${id}`, { method: "PUT", body: product }),
 
-            if (!res.ok) {
-                const errorJson: OtherProductResponse = await res.json().catch(
-                    (): OtherProductResponse => ({
-                        success: false,
-                        message: "An unknown network error occurred.",
-                    }),
-                );
-                throw new Error(errorJson.message);
-            }
-
-            return res.json();
-        },
         onError: (err) => {
             toast(false, err.message);
         },

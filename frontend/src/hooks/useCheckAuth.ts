@@ -1,10 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
+import { api } from "../utils/api";
 
-const checkAuthFn = async () => {
-  const res = await fetch("/api/auth/check");
-  if (!res.ok) return false;
-  return true;
-};
+const checkAuthFn = async () => await api("/auth/check");
+
 
 const useCheckAuth = () => {
   const { data, isLoading } = useQuery({

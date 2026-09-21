@@ -21,6 +21,7 @@ import toast from "../utils/toast";
 import { useSearchParams } from "react-router-dom";
 import Custompagination from "../component/CustomPagination";
 import { computePagination } from "../utils/compute-pagination";
+import { api } from "../utils/api";
 
 export interface PopulatedProduct {
   _id: string;
@@ -66,24 +67,11 @@ const formatDate = (dateStr: string) =>
     hour12: true,
   });
 
-const fetchOrders = async (page: number): Promise<OrdersResponse> => {
-  const res = await fetch(`/api/orders?pageO=${page}`, {
-    credentials: "include",
-  });
-  const data = await res.json();
-  if (!data.success) throw new Error(data.message || "Failed to fetch orders");
-  return data;
-};
+const fetchOrders = (page: number): Promise<OrdersResponse> =>
+  api(`/orders?pageO=${page}`);
 
-const deliverOrder = async (id: string) => {
-  const res = await fetch(`/api/orders/${id}/deliver`, {
-    method: "PATCH",
-    credentials: "include",
-  });
-  const data = await res.json();
-  if (!data.success) throw new Error(data.message || "Failed to update order");
-  return data;
-};
+const deliverOrder = (id: string) =>
+  api(`/orders/${id}/deliver`, { method: "PATCH" });
 
 const OrdersPage = () => {
   const queryClient = useQueryClient();

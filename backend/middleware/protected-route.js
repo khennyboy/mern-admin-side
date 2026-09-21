@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 
 export const protectRoute = (req, res, next) => {
   try {
-    const token = req.cookies.token;
+    const token = req.cookies.accessToken;
 
     if (!token) {
       return res
@@ -10,7 +10,8 @@ export const protectRoute = (req, res, next) => {
         .json({ success: false, message: "Not authenticated" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+
     req.admin = decoded;
     next();
   } catch (error) {
