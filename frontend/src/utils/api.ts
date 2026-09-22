@@ -1,6 +1,5 @@
 import toast from "./toast";
 
-// lib/api.ts
 let refreshPromise: Promise<boolean> | null = null;
 
 const refreshSession = async () => {
@@ -10,15 +9,14 @@ const refreshSession = async () => {
 
 export const api = async (
     path: string,
-    options: { method?: string; body?: unknown, signal?: AbortSignal } = {},
-
+    options: { method?: string; body?: unknown; signal?: AbortSignal } = {}
 ) => {
     const send = () =>
         fetch(`/api${path}`, {
             signal: options.signal,
             method: options.method ?? "GET",
             headers: { "Content-Type": "application/json" },
-            credentials: "include", //not really needed as its proxy
+            credentials: "include",
             body: options.body ? JSON.stringify(options.body) : undefined,
         });
 
@@ -32,17 +30,28 @@ export const api = async (
 
         const refreshed = await refreshPromise;
         if (!refreshed) {
-            setTimeout(() => window.location.replace("/login"), 2000);
-            toast(false, "Session expired. Redirecting...")
+            const isTabActive = document.visibilityState === "visible" && sessionStorage.getItem("app_loaded");
+
+            if (isTabActive) {
+                toast(false, "Session expired. Redirecting...");
+                setTimeout(() => window.location.replace("/login"), 1500);
+            } else {
+                window.location.replace("/login");
+            }
+
             throw new Error("Session expired");
         }
 
         res = await send();
     }
+
     const data = await res.json().catch(() => ({
         success: false,
         message: "An unknown network error occurred",
     }));
+
     if (!res.ok) throw new Error(data?.message ?? "Something went wrong");
+
+    sessionStorage.setItem("app_loaded", "true");
     return data;
 };
