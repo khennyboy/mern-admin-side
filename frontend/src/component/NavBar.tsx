@@ -135,7 +135,6 @@ const NavBar = () => {
             >
               <LuLogOut size={16} />
             </Button>
-         
           </HStack>
         </Flex>
       </Container>
