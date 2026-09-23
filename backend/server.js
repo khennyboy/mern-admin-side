@@ -12,7 +12,7 @@ import cors from "cors";
 
 const app = express();
 app.use("/api/webhook", webhookRoutes);
-app.use(express.json());
+
 
 const PORT = process.env.PORT || 8000;
 const __dirname = path.resolve();
@@ -24,7 +24,7 @@ app.use(
   }),
 );
 
-// app.use("/api/paystack", paystackRoutes);
+
 app.use(express.json());
 app.use(cookieParser());
 
