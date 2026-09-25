@@ -10,6 +10,7 @@ import orderRoutes from "./routes/order.route.js";
 import webhookRoutes from "./routes/webhook.route.js";
 import cors from "cors";
 import { fileURLToPath } from "url";
+import mongoose from "mongoose";
 
 const app = express();
 app.use("/api/webhook", webhookRoutes);
@@ -41,16 +42,12 @@ if (process.env.NODE_ENV === "production") {
   });
 }
 
-const startServer = async () => {
-  try {
-    await connectDB();
-    app.listen(PORT, () => {
-      console.log(`Server running at http://localhost:${PORT}`);
-    });
-  } catch (error) {
-    console.error(`Database connection failed: ${error.message}`);
-    process.exit(1);
-  }
-};
+mongoose.connect(process.env.MONGO_URI).then(() => app.listen(+PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
+})).catch((err) => {
+  console.error(`Database connection failed: ${err.message}`);
+  process.exit(1)
+})
 
-startServer();
+
+
