@@ -88,22 +88,27 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-// delete product
 export const deleteProduct = async (req, res) => {
   const { id } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    res
+    return res
       .status(404)
       .json({ success: false, message: "Invalid Product Id" });
   }
+
   try {
-    const deletedProduct = await Product.findByIdAndDelete(id).toArray(function (err, res){
-      console.log(err)
-    })
-  res.status(200).json({ success: true, data: deletedProduct });
-} catch (error) {
-  console.log(`Error deleting product ${error.message}`)
-  res.status(500).json({ success: false, message: "Error deleting Product" });
-}
+    const deletedProduct = await Product.findByIdAndDelete(id);
+
+    if (!deletedProduct) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
+    }
+
+    res.status(200).json({ success: true, data: deletedProduct });
+  } catch (error) {
+    console.log(`Error deleting product: ${error.message}`);
+    res.status(500).json({ success: false, message: "Error deleting Product" });
+  }
 };
