@@ -19,11 +19,16 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    count: {
+    quantity: {
       type: Number,
-      require: true,
-      default: 1
-    }
+      required: true,
+      min: 0,
+      default: 0,
+      validate: {
+        validator: Number.isInteger,
+        message: "Quantity must be a whole number",
+      },
+    },
   },
   {
     timestamps: true,

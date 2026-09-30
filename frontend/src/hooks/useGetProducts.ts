@@ -20,6 +20,7 @@ const fetchProducts = async (page: number, signal?: AbortSignal) => {
     throw new Error(errorJson.message);
   }
   const json = await res.json();
+  console.log(json)
   return json;
 };
 
