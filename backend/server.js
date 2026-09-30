@@ -2,7 +2,6 @@ import "./config/env.js";
 
 import express from "express";
 import path, { dirname } from "path";
-import { connectDB } from "./config/db.js";
 import productRoutes from "./routes/products.route.js";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.route.js";

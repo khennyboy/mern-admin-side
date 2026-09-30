@@ -9,14 +9,15 @@ import { productSchema } from "../utils/schema";
 import type { Product, ProductFormProps } from "../utils/types";
 import FloatingInput from "./FloatingInput";
 
-type ProductFormValues = z.infer<typeof productSchema>;
+type ProductFormInput = z.input<typeof productSchema>;
+type ProductFormOutput = z.output<typeof productSchema>;
 
 const ProductForm = ({ submitLabel = "Save" }: ProductFormProps) => {
   const selectedProduct = useProductStore((state) => state.selectedProduct);
 
-  const initialValues: Product = {
+  const initialValues: ProductFormInput = {
     name: selectedProduct?.name || "",
-    price: selectedProduct?.price ?? (undefined as unknown as number),
+    price: selectedProduct?.price.toString() || "",
     image: selectedProduct?.image || "",
   };
 
@@ -30,14 +31,13 @@ const ProductForm = ({ submitLabel = "Save" }: ProductFormProps) => {
     handleSubmit,
     reset,
     formState: { errors, isDirty, isValid },
-  } = useForm<ProductFormValues>({
+  } = useForm<ProductFormInput, undefined, ProductFormOutput>({
     resolver: zodResolver(productSchema),
-    mode: "onBlur",
-    reValidateMode: "onChange",
+    mode: "onTouched",
     defaultValues: initialValues,
   });
 
-  const onSubmit = (values: ProductFormValues) => {
+  const onSubmit = (values: ProductFormOutput) => {
     const product: Product = {
       name: values.name,
       price: values.price,
@@ -83,15 +83,8 @@ const ProductForm = ({ submitLabel = "Save" }: ProductFormProps) => {
             label="Price"
             type="number"
             name="price"
-            value={
-              field.value === undefined || Number.isNaN(field.value)
-                ? ""
-                : field.value
-            }
-            onChange={(e) => {
-              const val = e.target.value;
-              field.onChange(val === "" ? undefined : Number(val));
-            }}
+            value={field.value}
+            onChange={field.onChange}
             onBlur={field.onBlur}
             error={errors.price?.message}
           />

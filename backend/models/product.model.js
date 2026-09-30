@@ -19,6 +19,11 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    count: {
+      type: Number,
+      require: true,
+      default: 1
+    }
   },
   {
     timestamps: true,
