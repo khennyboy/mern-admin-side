@@ -13,6 +13,7 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: Infinity,
       retry: 0,
+      refetchInterval: 60000,
     },
   },
 });

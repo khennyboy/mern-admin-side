@@ -5,13 +5,13 @@ export interface Product {
   name: string;
   price: number;
   image: string;
+  quantity: number;
 }
 
 export type ProductDetail = Product & {
   _id: string;
   createdAt: string;
   updatedAt: string;
-  __v: number;
 };
 
 export type ProductFormProps = {

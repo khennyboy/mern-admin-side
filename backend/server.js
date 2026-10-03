@@ -10,6 +10,7 @@ import webhookRoutes from "./routes/webhook.route.js";
 import cors from "cors";
 import { fileURLToPath } from "url";
 import mongoose from "mongoose";
+import { startExpiryJob } from "./jobs/expireReservation.js";
 
 const app = express();
 app.use("/api/webhook", webhookRoutes);
@@ -48,5 +49,5 @@ mongoose.connect(process.env.MONGO_URI).then(() => app.listen(+PORT, () => {
   process.exit(1)
 })
 
-
+startExpiryJob()
 

@@ -18,6 +18,7 @@ const ProductForm = ({ submitLabel = "Save" }: ProductFormProps) => {
   const initialValues: ProductFormInput = {
     name: selectedProduct?.name || "",
     price: selectedProduct?.price.toString() || "",
+    quantity: selectedProduct?.quantity.toString() || "",
     image: selectedProduct?.image || "",
   };
 
@@ -42,6 +43,7 @@ const ProductForm = ({ submitLabel = "Save" }: ProductFormProps) => {
       name: values.name,
       price: values.price,
       image: values.image,
+      quantity: values.quantity,
     };
 
     if (selectedProduct) {
@@ -102,6 +104,21 @@ const ProductForm = ({ submitLabel = "Save" }: ProductFormProps) => {
             onChange={field.onChange}
             onBlur={field.onBlur}
             error={errors.image?.message}
+          />
+        )}
+      />
+      <Controller
+        name="quantity"
+        control={control}
+        render={({ field }) => (
+          <FloatingInput
+            label="Quantity in stock"
+            type="number"
+            name="quantity"
+            value={field.value}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            error={errors.quantity?.message}
           />
         )}
       />

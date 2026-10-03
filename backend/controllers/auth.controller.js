@@ -62,7 +62,7 @@ export const login = async (req, res) => {
       .json({ success: true, message: "Logged in successfully" });
   } catch (error) {
     console.log("Error logging in:", error.message);
-    return res.status(500).json({ success: false, message: "Server Error" });
+    return res.status(500).json({ success: false, message: `Error login in ${error.message}` });
   }
 };
 
@@ -107,7 +107,7 @@ export const refresh = async (req, res) => {
     clearAuthCookies(res);
     return res
       .status(401)
-      .json({ success: false, message: "Invalid refresh token" });
+      .json({ success: false, message: `Invalid refresh token ${error.message}` });
   }
 };
 
@@ -120,7 +120,7 @@ export const logout = async (req, res) => {
       await RefreshToken.deleteOne({ tokenHash: hashToken(token) });
     }
   } catch (error) {
-    console.log("Error logging out:", error.message);
+    console.log(`Error logging out ${error.message}`);
   }
 
   clearAuthCookies(res);

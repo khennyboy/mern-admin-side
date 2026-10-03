@@ -13,6 +13,7 @@ export const getProducts = async (req, res) => {
       Product.find().sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
     ]);
 
+
     return res.status(200).json({
       success: true,
       data: products,
@@ -20,7 +21,7 @@ export const getProducts = async (req, res) => {
       pageSize: limit,
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Server Error" });
+    return res.status(500).json({ success: false, message: `Error getting product ${error.message}` });
   }
 };
 

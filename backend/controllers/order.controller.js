@@ -1,33 +1,61 @@
+import crypto from "crypto";
 import Order from "../models/order.model.js";
 import Product from "../models/product.model.js";
 import { sendAdminOrderEmail } from "../services/email.js";
+import {
+  takeStock,
+  giveStockBack,
+  releaseOrder,
+  confirmPayment,
+} from "../services/reservation.js";
+
+const HOLD_MINUTES = 15;
+
+
+const confirmedOnly = { orderStatus: { $ne: "unconfirmed" } };
+
+const messageFor = (order) => {
+  if (!order.refundAmount) return "Payment verified successfully";
+  const names = order.refundItems.map((i) => i.name).join(", ");
+  return `Payment received, but these items are no longer available: ${names}. We will contact you about a refund of ₦${order.refundAmount.toLocaleString()}.`;
+};
+
 // 1. Initialize Paystack Payment
 export const initializePayment = async (req, res) => {
+  let createdReference = null;
+  let verifiedItems = [];
+
   try {
     const { name, email, address, phone, items } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
-      return res
-        .status(400)
-        .json({ success: false, message: "No items provided" });
+      return res.status(400).json({ success: false, message: "No items provided" });
     }
     if (!name || !email || !address || !phone) {
-      return res
-        .status(400)
-        .json({ success: false, message: "User details is required" });
+      return res.status(400).json({ success: false, message: "User details is required" });
     }
 
     const productIds = items.map((item) => item.product);
     const products = await Product.find({ _id: { $in: productIds } });
 
     let totalAmount = 0;
-    const verifiedItems = items.map((item) => {
+    verifiedItems = items.map((item) => {
       const product = products.find((p) => p._id.toString() === item.product);
       if (!product) throw new Error(`Product not found: ${item.product}`);
 
-      const quantity = Math.max(1, Number(item.quantity) || 1);
-      totalAmount += product.price * quantity;
+      const quantity = Math.max(1, parseInt(item.quantity) || 1);
 
+      if (quantity > product.quantity) {
+        const err = new Error(
+          product.quantity === 0
+            ? `"${product.name}" is out of stock`
+            : `Only ${product.quantity} of "${product.name}" available`,
+        );
+        err.statusCode = 400;
+        throw err;
+      }
+
+      totalAmount += product.price * quantity;
       return {
         product: product._id.toString(),
         name: product.name,
@@ -36,7 +64,28 @@ export const initializePayment = async (req, res) => {
       };
     });
 
-    const reference = `REF_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
+  
+    const held = await takeStock(verifiedItems);
+    if (!held) {
+      return res.status(409).json({
+        success: false,
+        message: "Some items just sold out or are being held by other buyers. Try again shortly.",
+      });
+    }
+
+    const reference = `REF_${crypto.randomUUID()}`;
+    await Order.create({
+      customerName: name,
+      customerEmail: email,
+      shippingAddress: address,
+      phone,
+      items: verifiedItems,
+      totalAmount,
+      paystackReference: reference,
+      orderStatus: "unconfirmed",
+      expiresAt: new Date(Date.now() + HOLD_MINUTES * 60 * 1000),
+    });
+    createdReference = reference;
 
     const paystackPayload = {
       email,
@@ -49,144 +98,100 @@ export const initializePayment = async (req, res) => {
         shippingAddress: address,
         phone,
         items: verifiedItems,
+        totalAmount,
       },
     };
 
-    const paystackRes = await fetch(
-      "https://api.paystack.co/transaction/initialize",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(paystackPayload),
+    const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify(paystackPayload),
+    });
 
     const paystackData = await paystackRes.json();
-
     if (!paystackRes.ok) {
       throw new Error(paystackData.message || "Paystack initialization failed");
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       authorization_url: paystackData.data.authorization_url,
       reference,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    if (createdReference) {
+      await releaseOrder({ paystackReference: createdReference }); // payment failed
+    } else if (verifiedItems.length > 0) {
+      await giveStockBack(verifiedItems); // order creation failed
+    }
+
+    res
+      .status(error.statusCode || 500)
+      .json({ success: false, message: error.message });
   }
 };
+
 
 // 2. Verify Payment
 export const verifyPayment = async (req, res) => {
   try {
     const { reference } = req.query;
 
-    // Fast path — webhook usually beats the redirect
-    let order = await Order.findOne({ paystackReference: reference });
-    if (order) {
-      return res.status(200).json({
-        success: true,
-        message: "Payment verified successfully",
-        order,
-      });
+
+    const existing = await Order.findOne({ paystackReference: reference });
+    if (existing?.orderStatus === "confirmed") {
+      return res
+        .status(200)
+        .json({ success: true, message: messageFor(existing), order: existing });
     }
 
-    // Fallback — webhook hasn't landed yet, verify directly
     const paystackRes = await fetch(
       `https://api.paystack.co/transaction/verify/${reference}`,
-      {
-        headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
-      },
+      { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` } },
     );
     const paystackData = await paystackRes.json();
 
     if (!paystackRes.ok) {
       throw new Error(paystackData.message || "Paystack verification failed");
     }
+
     if (paystackData.data.status !== "success") {
+      // Abandoned or failed: free the stock now instead of waiting for the timer
+      if (["abandoned", "failed"].includes(paystackData.data.status)) {
+        await releaseOrder({ paystackReference: reference });
+      }
       return res
         .status(400)
         .json({ success: false, message: "Payment verification failed" });
     }
 
-    const metadata = paystackData.data.metadata;
-    if (!metadata || !metadata.items) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing order metadata for this transaction",
-      });
+    const { order, justPaid, reason } = await confirmPayment(reference, paystackData.data);
+
+    if (!order) {
+      return res.status(409).json({ success: false, message: reason });
     }
 
-    const productIds = metadata.items.map((item) => item.product);
-    const products = await Product.find({ _id: { $in: productIds } });
+    // Respond first, emails never delay the user
+    res.status(200).json({ success: true, message: messageFor(order), order });
 
-    let totalAmount = 0;
-    const verifiedItems = metadata.items.map((item) => {
-      const product = products.find((p) => p._id.toString() === item.product);
-      if (!product) throw new Error(`Product not found: ${item.product}`);
-      const quantity = Math.max(1, Number(item.quantity) || 1);
-      totalAmount += product.price * quantity;
-      return {
-        product: product._id,
-        name: product.name,
-        price: product.price,
-        quantity,
-      };
-    });
-
-    const expectedAmount = Math.round(totalAmount * 100);
-    const baseAmountPaid =
-      paystackData.data.requested_amount || paystackData.data.amount;
-    if (baseAmountPaid !== expectedAmount) {
-      return res.status(400).json({
-        success: false,
-        message: "Payment amount mismatch — order not created",
-      });
-    }
-
-    try {
-      order = await Order.create({
-        customerName: metadata.customerName,
-        customerEmail: metadata.customerEmail,
-        shippingAddress: metadata.shippingAddress,
-        phone: metadata.phone,
-        items: verifiedItems,
-        totalAmount,
-        paystackReference: reference,
-      });
-    } catch (err) {
-      if (err.code === 11000) {
-        order = await Order.findOne({ paystackReference: reference }); // webhook won the race
-      } else {
-        throw err;
-      }
-    }
-
-    // Respond first — emails never delay the user
-    res
-      .status(200)
-      .json({ success: true, message: "Payment verified successfully", order });
-
-    sendAdminOrderEmail(order);
-    // sendCustomerOrderEmail(order);
+    if (justPaid) sendAdminOrderEmail(order); // only the path that confirmed it sends the email
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
 const limit = 10;
-// 3. Admin: Get all successful orders
+// 3. Admin: Get all confirmed orders
 export const getOrders = async (req, res) => {
   try {
     const page = parseInt(req.query.pageO) || 1;
     const skip = (page - 1) * limit;
     const [totalOrders, orders] = await Promise.all([
-      Order.countDocuments(),
-      Order.find()
+      Order.countDocuments(confirmedOnly),
+      Order.find(confirmedOnly)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -205,6 +210,7 @@ export const getOrders = async (req, res) => {
 export const getOrdersCount = async (req, res) => {
   try {
     const count = await Order.countDocuments({
+      ...confirmedOnly,
       deliveryStatus: "pending",
     });
     res.status(200).json({ success: true, count });
