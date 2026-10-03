@@ -136,6 +136,7 @@ export const initializePayment = async (req, res) => {
 
 
 // 2. Verify Payment
+// 2. Verify Payment
 export const verifyPayment = async (req, res) => {
   try {
     const { reference } = req.query;
@@ -167,16 +168,11 @@ export const verifyPayment = async (req, res) => {
         .json({ success: false, message: "Payment verification failed" });
     }
 
-    const { order, justPaid, reason } = await confirmPayment(reference, paystackData.data);
-
-    if (!order) {
-      return res.status(409).json({ success: false, message: reason });
-    }
-
+    const { order, justPaid } = await confirmPayment(reference, paystackData.data);
 
     res.status(200).json({ success: true, message: messageFor(order), order });
 
-    if (justPaid) sendAdminOrderEmail(order);
+    if (justPaid) await sendAdminOrderEmail(order);
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

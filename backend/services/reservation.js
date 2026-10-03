@@ -1,7 +1,13 @@
 import Order from "../models/order.model.js";
 import Product from "../models/product.model.js";
 
-// Take ONE item. Checks and deducts in the same step.
+
+function paymentError(message) {
+    const err = new Error(message);
+    err.statusCode = 409;
+    return err;
+}
+
 async function takeItem({ product, quantity }) {
     const res = await Product.updateOne(
         { _id: product, quantity: { $gte: quantity } },
@@ -10,17 +16,22 @@ async function takeItem({ product, quantity }) {
     return res.modifiedCount === 1;
 }
 
-// Used at checkout: all items or nothing.
+
 export async function takeStock(items) {
     const taken = [];
-    for (const item of items) {
-        if (!(await takeItem(item))) {
-            await giveStockBack(taken);
-            return false;
+    try {
+        for (const item of items) {
+            if (!(await takeItem(item))) {
+                await giveStockBack(taken);
+                return false;
+            }
+            taken.push(item);
         }
-        taken.push(item);
+        return true;
+    } catch (err) {
+        await giveStockBack(taken);
+        throw err;
     }
-    return true;
 }
 
 export async function giveStockBack(items) {
@@ -39,35 +50,47 @@ export async function releaseOrder(filter) {
     return order;
 }
 
-
-// Used by BOTH verifyPayment and the webhook
+// used by verify payment and webhook
 export async function confirmPayment(reference, paystackData) {
     const meta = paystackData.metadata;
-    const paidKobo = paystackData.requested_amount || paystackData.amount;
 
-    if (paidKobo !== Math.round(meta.totalAmount * 100)) {
-        return { reason: "Payment details do not match this checkout" };
+    if (!meta?.items) {
+        throw paymentError("Payment does not belong to a checkout");
     }
 
-    // 1. Normal case: paid within 15 minutes, the order still exists
+    const itemKobo = Math.round(meta.totalAmount * 100);
+    const isValidAmount =
+        paystackData.requested_amount === itemKobo ||
+        paystackData.amount >= itemKobo;
+
+    if (!isValidAmount) {
+        throw paymentError("Payment amount does not match this checkout");
+    }
+
+
     const confirmed = await Order.findOneAndUpdate(
         { paystackReference: reference, orderStatus: "unconfirmed" },
-        { orderStatus: "confirmed" },
+        { $set: { orderStatus: "confirmed" }, $unset: { expiresAt: "" } },
         { new: true },
     );
     if (confirmed) return { order: confirmed, justPaid: true };
 
+    const existing = await Order.findOne({ paystackReference: reference });
+    if (existing) return { order: existing, justPaid: false };
 
-    // 2. Late payment: the order was deleted. Rebuild it from the metadata
-    //    and check each item separately.
+    // Late payment: the order was deleted. Rebuild it from the metadata
     const available = [];
     const refundItems = [];
-    for (const item of meta.items) {
-        ((await takeItem(item)) ? available : refundItems).push(item);
-    }
-    const refundAmount = refundItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
     try {
+        for (const item of meta.items) {
+            ((await takeItem(item)) ? available : refundItems).push(item);
+        }
+        const refundAmount = refundItems.reduce(
+            (sum, i) => sum + i.price * i.quantity,
+            0,
+        );
+
         const order = await Order.create({
             customerName: meta.customerName,
             customerEmail: meta.customerEmail,
@@ -82,11 +105,13 @@ export async function confirmPayment(reference, paystackData) {
         });
         return { order, justPaid: true };
     } catch (err) {
+        await giveStockBack(available);
+
         if (err.code === 11000) {
-            // The other path rebuilt it first, so return the stock we just took
-            await giveStockBack(available);
-            return { order: await Order.findOne({ paystackReference: reference }), justPaid: false };
+            const order = await Order.findOne({ paystackReference: reference });
+            if (order) return { order, justPaid: false };
         }
+
         throw err;
     }
 }

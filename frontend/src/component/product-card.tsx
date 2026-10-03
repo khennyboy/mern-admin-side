@@ -1,5 +1,6 @@
 import {
   AspectRatio,
+  Badge,
   Box,
   Heading,
   HStack,
@@ -16,11 +17,22 @@ import { useProductStore } from "../store/product-store";
 import type { ProductCardProps } from "../utils/types";
 import { useShallow } from "zustand/react/shallow";
 
+const LOW_STOCK = 5;
+
+const getStockInfo = (quantity: number) => {
+  if (quantity <= 0) return { label: "Out of stock", palette: "red" };
+  if (quantity <= LOW_STOCK)
+    return { label: `Only ${quantity} left`, palette: "orange" };
+  return { label: `${quantity} in stock`, palette: "green" };
+};
+
 const ProductCard = ({ product }: ProductCardProps) => {
   const bg = useColorModeValue("white", "gray.900");
   const borderColor = useColorModeValue("gray.200", "gray.800");
   const priceBg = useColorModeValue("purple.50", "purple.950");
   const priceColor = useColorModeValue("purple.700", "purple.300");
+
+  const stock = getStockInfo(product.quantity);
 
   const { setSelectedProduct, setUpdateDialog, setDeleteDialog } =
     useProductStore(
@@ -55,6 +67,17 @@ const ProductCard = ({ product }: ProductCardProps) => {
         <Heading as="h3" size="sm" mb={2} lineClamp={1} pl={{ base: 2, md: 4 }}>
           {product.name}
         </Heading>
+
+        <Box pl={{ base: 2, md: 4 }} mb={3}>
+          <Badge
+            colorPalette={stock.palette}
+            variant="subtle"
+            rounded="full"
+            px={2}
+          >
+            {stock.label}
+          </Badge>
+        </Box>
 
         <HStack
           justify={"space-between"}

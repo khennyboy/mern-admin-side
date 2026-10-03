@@ -3,6 +3,16 @@ import { Resend } from "resend";
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_ADDRESS = '"E-Store" <onboarding@resend.dev>';
 
+// Resend does NOT throw when sending fails, it returns { error }.
+// This helper turns that into a real error so our try/catch can see it.
+const send = async (payload) => {
+  const { error } = await resend.emails.send(payload);
+  if (error) throw new Error(error.message);
+};
+
+const escapeHtml = (text = "") =>
+  String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
 // Shared email styles (Mobile Responsive)
 const emailWrapper = (title, bodyContent) => `
   <div style="background:#f4f4f7; padding:16px 8px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; width:100%; box-sizing:border-box;">
@@ -36,7 +46,7 @@ const itemsTable = (items) => `
           ${item.name} <span style="color:#999999; white-space:nowrap;">×${item.quantity}</span>
         </td>
         <td style="padding:10px 0; font-size:14px; color:#333333; text-align:right; font-weight:500; white-space:nowrap; vertical-align:top;">
-          $${item.price}
+          ₦${item.price.toLocaleString()}
         </td>
       </tr>`,
       )
@@ -46,6 +56,17 @@ const itemsTable = (items) => `
 
 // 1. Send New Order Alert Email to Admin
 export const sendAdminOrderEmail = async (order) => {
+  // Shown only when the customer paid late and some items were out of stock
+  const refundBlock =
+    order.refundAmount > 0
+      ? `
+    <div style="margin-top:20px; padding:14px 16px; background:#fff4e5; border:1px solid #ffd8a8; border-radius:8px;">
+      <p style="margin:0 0 6px 0; font-size:14px; font-weight:600; color:#b45309;">⚠️ Refund needed: ₦${order.refundAmount.toLocaleString()}</p>
+      <p style="margin:0; font-size:13px; color:#666666;">The customer paid after the stock hold expired, and these items were no longer available:</p>
+      ${itemsTable(order.refundItems)}
+    </div>`
+      : "";
+
   const body = `
     <p style="font-size:15px; color:#333333; margin:0 0 16px 0;">🚨 A new order just came in.</p>
     
@@ -73,18 +94,23 @@ export const sendAdminOrderEmail = async (order) => {
     <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="width:100%; border-top:2px solid #7c3aed; margin-top:8px; padding-top:12px;">
       <tr>
         <td style="font-weight:600; font-size:15px; color:#111111;">Total Paid</td>
-        <td style="font-weight:600; font-size:15px; color:#7c3aed; text-align:right;">$${order.totalAmount}</td>
+        <td style="font-weight:600; font-size:15px; color:#7c3aed; text-align:right;">₦${order.totalAmount.toLocaleString()}</td>
       </tr>
     </table>
+
+    ${refundBlock}
 
     <p style="font-size:13px; color:#999999; margin-top:24px;">Log in to the admin dashboard to update the delivery status.</p>
   `;
 
   try {
-    await resend.emails.send({
+    await send({
       from: FROM_ADDRESS,
       to: process.env.EMAIL_USER,
-      subject: `New Order Received! - Ref: ${order.paystackReference}`,
+      subject:
+        order.refundAmount > 0
+          ? `Order needs a refund call - Ref: ${order.paystackReference}`
+          : `New Order Received! - Ref: ${order.paystackReference}`,
       html: emailWrapper("New Order Alert", body),
     });
   } catch (error) {
@@ -92,37 +118,24 @@ export const sendAdminOrderEmail = async (order) => {
   }
 };
 
-// 2. Send Order Confirmation Email to Customer (this will activate when i have my own domain)
-// const sendCustomerOrderEmail = async (order) => {
-//   const body = `
-//     <p style="font-size:15px; color:#333333; margin:0 0 12px 0;">Hi ${order.customerName}, thanks for your order! 🎉</p>
-//     <p style="font-size:14px; color:#666666; margin:0 0 16px 0;">Ref: <strong style="word-break:break-all;">${order.paystackReference}</strong></p>
+// 2. Send an alert to the admin when a payment could not be processed
+export const sendAdminAlertEmail = async (subject, details) => {
+  const body = `
+    <p style="font-size:15px; color:#333333; margin:0 0 16px 0;">Something needs your attention.</p>
+    <pre style="white-space:pre-wrap; word-break:break-word; background:#fafafa; border:1px solid #eeeeee; border-radius:8px; padding:12px; font-size:13px; color:#333333; margin:0; font-family:inherit;">${escapeHtml(details)}</pre>
+    <p style="font-size:13px; color:#999999; margin-top:24px;">Look up the reference on your Paystack dashboard to check the payment.</p>
+  `;
 
-//     ${itemsTable(order.items)}
+  try {
+    await send({
+      from: FROM_ADDRESS,
+      to: process.env.EMAIL_USER,
+      subject: `⚠️ ${subject}`,
+      html: emailWrapper("Action needed", body),
+    });
+  } catch (error) {
+    // an alert must never crash or hide the original problem
+    console.error("Failed to send admin alert:", error.message);
+  }
+};
 
-//     <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="width:100%; border-top:2px solid #7c3aed; margin-top:8px; padding-top:12px;">
-//       <tr>
-//         <td style="font-weight:600; font-size:15px; color:#111111;">Total Paid</td>
-//         <td style="font-weight:600; font-size:15px; color:#7c3aed; text-align:right;">$${order.totalAmount}</td>
-//       </tr>
-//     </table>
-
-//     <div style="margin-top:24px; padding-top:16px; border-top:1px solid #eeeeee;">
-//       <p style="font-size:14px; color:#333333; margin:0 0 4px 0;"><strong>Shipping Address:</strong></p>
-//       <p style="font-size:14px; color:#666666; margin:0; line-height:1.5; word-break:break-word;">${order.shippingAddress}</p>
-//     </div>
-
-//     <p style="font-size:13px; color:#999999; margin-top:24px;">We'll notify you once your order is out for delivery.</p>
-//   `;
-
-//   try {
-//     await resend.emails.send({
-//       from: FROM_ADDRESS,
-//       to: order.customerEmail,
-//       subject: `Order Confirmation - Ref: ${order.paystackReference}`,
-//       html: emailWrapper("Order Confirmed", body),
-//     });
-//   } catch (error) {
-//     console.error("Failed to send customer email:", error.message);
-//   }
-// };

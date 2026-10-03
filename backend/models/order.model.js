@@ -18,13 +18,11 @@ const orderSchema = new mongoose.Schema(
     totalAmount: { type: Number, required: true },
     paystackReference: { type: String, required: true, unique: true },
 
-
     orderStatus: {
       type: String,
       enum: ["unconfirmed", "confirmed"],
     },
-    expiresAt: Date, // when the stock hold ends
-
+    expiresAt: Date,
 
     refundItems: [itemFields],
     refundAmount: { type: Number, default: 0 },
@@ -38,7 +36,7 @@ const orderSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-// Lets the cron job quickly find unconfirmed orders past their deadline
+
 orderSchema.index({ orderStatus: 1, expiresAt: 1 });
 
 export default mongoose.model("Order", orderSchema);

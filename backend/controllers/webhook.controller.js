@@ -1,6 +1,13 @@
 import crypto from "crypto";
-import { sendAdminOrderEmail } from "../services/email.js";
+import { sendAdminOrderEmail, sendAdminAlertEmail } from "../services/email.js";
 import { confirmPayment } from "../services/reservation.js";
+
+const paymentDetails = (data = {}) =>
+  [
+    `Reference: ${data.reference}`,
+    `Customer: ${data.customer?.email}`,
+    `Amount paid: ₦${(data.amount / 100).toLocaleString()}`,
+  ].join("\n");
 
 export const handlePaystackWebhook = async (req, res) => {
   const signature = req.headers["x-paystack-signature"];
@@ -11,30 +18,35 @@ export const handlePaystackWebhook = async (req, res) => {
     .digest("hex");
 
   if (hash !== signature) {
-    return res
-      .status(401)
-      .json({ success: false, message: "Invalid signature" });
+    return res.status(401).json({ success: false, message: "Invalid signature" });
   }
 
-
-  res.status(200).json({ received: true });
-
+  let event;
   try {
-    const event = JSON.parse(req.body.toString());
-    if (event.event !== "charge.success") return;
+    event = JSON.parse(req.body.toString());
 
-    const { order, justPaid, reason } = await confirmPayment(
-      event.data.reference,
-      event.data,
-    );
+    if (event.event === "charge.success") {
+      const { order, justPaid } = await confirmPayment(
+        event.data.reference,
+        event.data,
+      );
 
-    if (!order) {
-      console.error(`Webhook: ${reason} (ref ${event.data.reference})`);
-      return;
+      if (!order) {
+        await sendAdminAlertEmail(
+          "Payment received but no order was created",
+          `\n${paymentDetails(event.data)}`,
+        );
+      } else if (justPaid) {
+        await sendAdminOrderEmail(order);
+      }
     }
 
-    if (justPaid) sendAdminOrderEmail(order);
+    res.status(200).json({ received: true });
   } catch (error) {
-    console.error("Webhook processing error:", error.message);
+    await sendAdminAlertEmail(
+      "Payment processing failed, Paystack will retry",
+      `${error.message}\n\n${paymentDetails(event?.data)}`,
+    );
+    res.status(500).json({ received: false }); 
   }
 };
