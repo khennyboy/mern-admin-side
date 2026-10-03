@@ -64,7 +64,7 @@ export const initializePayment = async (req, res) => {
       };
     });
 
-  
+
     const held = await takeStock(verifiedItems);
     if (!held) {
       return res.status(409).json({
@@ -140,7 +140,7 @@ export const verifyPayment = async (req, res) => {
   try {
     const { reference } = req.query;
 
-
+    // webhook already confirmed the order
     const existing = await Order.findOne({ paystackReference: reference });
     if (existing?.orderStatus === "confirmed") {
       return res
@@ -159,7 +159,6 @@ export const verifyPayment = async (req, res) => {
     }
 
     if (paystackData.data.status !== "success") {
-      // Abandoned or failed: free the stock now instead of waiting for the timer
       if (["abandoned", "failed"].includes(paystackData.data.status)) {
         await releaseOrder({ paystackReference: reference });
       }
@@ -174,10 +173,10 @@ export const verifyPayment = async (req, res) => {
       return res.status(409).json({ success: false, message: reason });
     }
 
-    // Respond first, emails never delay the user
+
     res.status(200).json({ success: true, message: messageFor(order), order });
 
-    if (justPaid) sendAdminOrderEmail(order); // only the path that confirmed it sends the email
+    if (justPaid) sendAdminOrderEmail(order);
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

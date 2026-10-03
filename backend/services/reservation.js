@@ -57,11 +57,8 @@ export async function confirmPayment(reference, paystackData) {
     );
     if (confirmed) return { order: confirmed, justPaid: true };
 
-    // 2. The other path (webhook or verify) already confirmed it
-    const existing = await Order.findOne({ paystackReference: reference });
-    if (existing) return { order: existing, justPaid: false };
 
-    // 3. Late payment: the order was deleted. Rebuild it from the metadata
+    // 2. Late payment: the order was deleted. Rebuild it from the metadata
     //    and check each item separately.
     const available = [];
     const refundItems = [];
