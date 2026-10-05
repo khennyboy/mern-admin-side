@@ -78,6 +78,8 @@ const NavBar = () => {
             <Link to={"/orders"}>
               <Box position="relative" display="inline-block">
                 <Button
+                  bg={useColorModeValue("gray.100", "gray.800")}
+                  _hover={{ bg: useColorModeValue("gray.200", "gray.700") }}
                   variant={"ghost"}
                   rounded={"lg"}
                   size={{ base: "xs", md: "sm" }}

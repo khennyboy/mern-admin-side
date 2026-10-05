@@ -1,18 +1,18 @@
 import { Box } from "@chakra-ui/react";
+import { Route, Routes } from "react-router-dom";
 import NavBar from "./component/NavBar";
+import { useColorModeValue } from "./components/ui/color-mode";
 import CreatePage from "./pages/CreatePage";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
-import { Route, Routes } from "react-router-dom";
-import { useColorModeValue } from "./components/ui/color-mode";
 
+import ConfirmDeleteDialog from "./component/ConfirmDalog";
 import Footer from "./component/Footer";
 import ProtectedRoute from "./component/ProtectedRoute";
-import { Toaster } from "./components/ui/toaster";
-import ConfirmDeleteDialog from "./component/ConfirmDalog";
 import UpdateDialog from "./component/UpdateDialog";
-import OrdersPage from "./pages/OrdersPage";
+import { Toaster } from "./components/ui/toaster";
 import NotFoundPage from "./pages/NotFound";
+import OrdersPage from "./pages/OrdersPage";
 
 function App() {
   return (

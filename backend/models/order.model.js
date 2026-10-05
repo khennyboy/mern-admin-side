@@ -24,18 +24,21 @@ const orderSchema = new mongoose.Schema(
     },
     expiresAt: Date,
 
-    refundItems: [itemFields],
-    refundAmount: { type: Number, default: 0 },
+    refundItems: { type: [itemFields], default: undefined },
+    refundAmount: Number,
+    refundStatus: {
+      type: String,
+      enum: ["refund_needed", "refunded"],
+    },
+    refundedAt: Date,
 
     deliveryStatus: {
       type: String,
       enum: ["pending", "delivered"],
-      default: "pending",
     },
   },
   { timestamps: true },
 );
-
 
 orderSchema.index({ orderStatus: 1, expiresAt: 1 });
 

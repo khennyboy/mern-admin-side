@@ -4,6 +4,7 @@ import {
   verifyPayment,
   getOrders,
   markOrderDelivered,
+  refundOrder,
 } from "../controllers/order.controller.js";
 import { protectRoute } from "../middleware/protected-route.js";
 import { getOrdersCount } from "../controllers/order.controller.js";
@@ -17,5 +18,7 @@ router.get("/verify", verifyPayment);
 router.get("/", protectRoute, getOrders);
 router.get("/count", protectRoute, getOrdersCount);
 router.patch("/:id/deliver", protectRoute, markOrderDelivered);
+router.patch("/:id/refund", protectRoute, refundOrder);
+
 
 export default router;
