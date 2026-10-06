@@ -1,18 +1,6 @@
-import {
-  Box,
-  Table,
-  Button,
-  Badge,
-  Text,
-  VStack,
-} from "@chakra-ui/react";
+import { Box, Table, Button, Badge, Text, VStack } from "@chakra-ui/react";
 import { formatDate } from "../utils/formatDate";
-import {
-  money,
-  getAllItems,
-  flagColor,
-  flagLabel,
-} from "../utils/orders";
+import { money, getAllItems, flagColor, flagLabel } from "../utils/orders";
 import type { Order, PendingAction } from "../utils/orders";
 
 interface OrdersTableProps {
@@ -36,7 +24,7 @@ export const OrdersTable = ({
   onShowMore,
   onRequestRefund,
   onRequestComplete,
-  onDeliver,
+//   onDeliver,
 }: OrdersTableProps) => (
   <Box
     overflowX="auto"
@@ -62,9 +50,7 @@ export const OrdersTable = ({
           const busy = pending?.id === order._id;
           const refunding = busy && pending?.kind === "refund";
           const completing = busy && pending?.kind === "complete";
-          const needsRefund = order.refundStatus === "refund_needed";
-          const canComplete =
-            needsRefund || order.deliveryStatus === "pending";
+
           const allItems = getAllItems(order);
 
           return (
@@ -131,7 +117,7 @@ export const OrdersTable = ({
 
               <Table.Cell verticalAlign="middle" py={4}>
                 <VStack align="start" gap={0.5}>
-                  {order.deliveryStatus ? (
+                  {order.deliveryStatus && (
                     <Badge
                       colorPalette={
                         order.deliveryStatus === "delivered"
@@ -143,58 +129,53 @@ export const OrdersTable = ({
                         ? "Completed"
                         : "Pending"}
                     </Badge>
-                  ) : (
-                    <Badge colorPalette={needsRefund ? "red" : "gray"}>
-                      {needsRefund ? "Refund needed" : "Refunded"}
-                    </Badge>
                   )}
                   {order.deliveryStatus === "delivered" && (
                     <Text fontSize="xs" color="gray.500">
                       {formatDate(order.updatedAt)}
                     </Text>
                   )}
-                  {needsRefund && (
+                  {order.refundStatus == "refund_needed" && (
                     <Text fontSize="xs" color="red.500">
                       {money(order.refundAmount ?? 0)} to refund
                     </Text>
                   )}
                   {order.refundStatus === "refunded" && (
-                    <Text fontSize="xs" color="gray.500">
-                      {money(order.refundAmount ?? 0)} refunded
-                    </Text>
+                    <Box>
+                      <Badge colorPalette={"gray"}>Refunded</Badge>
+                      <Text fontSize="xs" color="gray.500">
+                        {formatDate(order.updatedAt)}
+                      </Text>
+                    </Box>
                   )}
                 </VStack>
               </Table.Cell>
 
               <Table.Cell verticalAlign="middle" py={4}>
-                {canComplete && (
-                  <VStack align="stretch" gap={1}>
-                    {needsRefund && (
-                      <Button
-                        size="xs"
-                        colorPalette="red"
-                        loading={refunding}
-                        disabled={busy}
-                        onClick={() => onRequestRefund(order)}
-                      >
-                        Refund
-                      </Button>
-                    )}
+                <VStack align="stretch" gap={1}>
+                  {order.refundStatus == "refund_needed" && (
+                    <Button
+                      size="xs"
+                      colorPalette="red"
+                      loading={refunding}
+                      disabled={busy}
+                      onClick={() => onRequestRefund(order)}
+                    >
+                      Refund
+                    </Button>
+                  )}
+                  {order.deliveryStatus == "pending" && (
                     <Button
                       size="xs"
                       colorPalette="green"
                       loading={completing}
                       disabled={busy}
-                      onClick={() =>
-                        needsRefund
-                          ? onRequestComplete(order)
-                          : onDeliver(order._id)
-                      }
+                      onClick={() => onRequestComplete(order)}
                     >
                       Mark Completed
                     </Button>
-                  </VStack>
-                )}
+                  )}
+                </VStack>
               </Table.Cell>
             </Table.Row>
           );

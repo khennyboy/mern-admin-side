@@ -31,8 +31,8 @@ const useDeleteProduct = () => {
         string,
         DeleteContext // delete context parameter
     >({
-        mutationFn: async (id) =>
-            await api(`/products/${id}`, { method: "DELETE", }),
+        mutationFn: (id) => api(`/products/${id}`, { method: "DELETE" }),
+        // runs before mutationfn runs
         onMutate: async (id) => {
             setDeleteDialog(false);
 
@@ -56,7 +56,6 @@ const useDeleteProduct = () => {
         },
         onSuccess: () => {
             toast(true, "Product deleted successfully");
-            // reconciles server truth in the background, no UI lag either way
             queryClient.invalidateQueries({ queryKey: ["products", page] });
         },
     });

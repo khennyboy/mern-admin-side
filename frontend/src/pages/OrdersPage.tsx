@@ -1,70 +1,34 @@
-import { useState } from "react";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import {
   Box,
   Button,
-  Heading,
-  Spinner,
   Center,
-  Container,
-  Text,
-  Dialog,
-  Portal,
-  VStack,
-  HStack,
-  Separator,
   CloseButton,
+  Container,
+  Dialog,
+  Heading,
+  HStack,
+  Portal,
+  Spinner,
+  Text,
+  VStack,
 } from "@chakra-ui/react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Custompagination from "../component/CustomPagination";
+import OrderDialog from "../component/OrderDialog";
+import { OrdersTable } from "../component/OrdersTable";
+import { useOrderAction } from "../hooks/useOrderAction";
 import { computePagination } from "../utils/compute-pagination";
 import { FILTERS } from "../utils/orderfilters";
-import { useOrderAction } from "../hooks/useOrderAction";
-import { OrdersTable } from "../component/OrdersTable";
+import type { ConfirmAction, Order, PendingAction } from "../utils/orders";
 import {
-  money,
-  itemNames,
-  getAllItems,
-  flagColor,
-  flagLabel,
-  fetchOrders,
   deliverOrder,
+  fetchOrders,
+  getAllItems,
+  money,
   refundOrder,
 } from "../utils/orders";
-import type {
-  Order,
-  DisplayItem,
-  ConfirmAction,
-  PendingAction,
-} from "../utils/orders";
-
-const ItemRows = ({ items }: { items: DisplayItem[] }) => (
-  <>
-    {items.map((item, i) => (
-      <Box key={i}>
-        <HStack justify="space-between" py={3}>
-          <VStack gap={0} align="start">
-            <Text fontSize="sm" fontWeight="medium">
-              {item.name}{" "}
-              {item.flag && (
-                <Text as="span" color={flagColor(item.flag)}>
-                  {flagLabel(item.flag)}
-                </Text>
-              )}
-            </Text>
-            <Text fontSize="xs" color="gray.500">
-              Qty: {item.quantity}
-            </Text>
-          </VStack>
-          <Text fontSize="sm" fontWeight="medium">
-            {money(item.price)}
-          </Text>
-        </HStack>
-        {i < items.length - 1 && <Separator />}
-      </Box>
-    ))}
-  </>
-);
 
 const OrdersPage = () => {
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
@@ -75,6 +39,7 @@ const OrdersPage = () => {
   const page = Number(searchParams.get("pageO")) || 1;
   const status = searchParams.get("status") || "all";
 
+  // to go to next page of the orders
   const goToPage = (nextPage: number) => {
     setSearchParams((prev) => {
       prev.set("pageO", String(nextPage));
@@ -82,6 +47,7 @@ const OrdersPage = () => {
     });
   };
 
+  // to change orders filter value
   const changeFilter = (value: string) => {
     setSearchParams((prev) => {
       prev.set("status", value);
@@ -90,6 +56,7 @@ const OrdersPage = () => {
     });
   };
 
+  // to fetch orders
   const { data, isLoading, isPlaceholderData } = useQuery({
     queryKey: ["admin-orders", page, status],
     queryFn: () => fetchOrders(page, status),
@@ -102,12 +69,14 @@ const OrdersPage = () => {
 
   const pagination = computePagination(page, data?.totalOrders || 0, pageSize);
 
+  // to deliver order
   const { mutate: markDelivered } = useOrderAction(
     deliverOrder,
     "Order marked as delivered!",
     "complete",
     setPending,
   );
+  // to refund customer
   const { mutate: refund } = useOrderAction(
     refundOrder,
     "Refund sent to the customer",
@@ -115,6 +84,7 @@ const OrdersPage = () => {
     setPending,
   );
 
+  // what is doing the actual work 
   const runConfirmed = () => {
     if (!confirm) return;
     if (confirm.kind === "refund") refund(confirm.order._id);
@@ -208,7 +178,9 @@ const OrdersPage = () => {
                   overflowY="auto"
                   pr={3}
                 >
-                  {activeOrder && <ItemRows items={getAllItems(activeOrder)} />}
+                  {activeOrder && (
+                    <OrderDialog items={getAllItems(activeOrder)} />
+                  )}
                 </VStack>
               </Dialog.Body>
               <Dialog.Footer>
@@ -259,17 +231,11 @@ const OrdersPage = () => {
               <Dialog.Body>
                 {confirm?.kind === "refund" ? (
                   <Text fontSize="sm">
-                    Send {money(confirm.order.refundAmount ?? 0)} back to{" "}
-                    {confirm.order.customerName} through Paystack for:{" "}
-                    {itemNames(confirm.order.refundItems)}. The order stays in
-                    your list, marked as refunded.
+                    Are you sure you want to refund the Customer
                   </Text>
                 ) : (
                   <Text fontSize="sm">
-                    This customer waited for{" "}
-                    {itemNames(confirm?.order.refundItems)}. Completing the
-                    order takes those items from your stock and adds them to the
-                    order. Restock the products first, or it will fail.
+                    Are you sure you've delivered the order
                   </Text>
                 )}
               </Dialog.Body>

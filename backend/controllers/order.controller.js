@@ -10,7 +10,7 @@ import {
   confirmPayment,
 } from "../services/reservation.js";
 
-const HOLD_MINUTES = 15; // reservation time
+const HOLD_MINUTES = 1; // reservation time
 const MAX_ITEMS_PER_ORDER = 30;
 
 const confirmedOnly = { orderStatus: { $ne: "unconfirmed" } };
