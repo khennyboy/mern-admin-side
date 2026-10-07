@@ -5,8 +5,6 @@ import { useColorModeValue } from "./components/ui/color-mode";
 import CreatePage from "./pages/CreatePage";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
-
-import ConfirmDeleteDialog from "./component/ConfirmDalog";
 import Footer from "./component/Footer";
 import ProtectedRoute from "./component/ProtectedRoute";
 import UpdateDialog from "./component/UpdateDialog";
@@ -31,7 +29,6 @@ function App() {
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
               <UpdateDialog />
-              <ConfirmDeleteDialog />
               <Footer />
             </ProtectedRoute>
           }
