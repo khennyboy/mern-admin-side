@@ -11,13 +11,20 @@ export const api = async (
     path: string,
     options: { method?: string; body?: unknown; signal?: AbortSignal } = {}
 ) => {
+    const isFormData = options.body instanceof FormData;
+
     const send = () =>
         fetch(`/api${path}`, {
             signal: options.signal,
             method: options.method ?? "GET",
-            headers: { "Content-Type": "application/json" },
+            // for FormData the browser sets the Content-Type (with the boundary) itself
+            headers: isFormData ? undefined : { "Content-Type": "application/json" },
             credentials: "include",
-            body: options.body ? JSON.stringify(options.body) : undefined,
+            body: !options.body
+                ? undefined
+                : isFormData
+                  ? (options.body as FormData)
+                  : JSON.stringify(options.body),
         });
 
     let res = await send();

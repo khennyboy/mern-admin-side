@@ -11,6 +11,7 @@ import cors from "cors";
 import { fileURLToPath } from "url";
 import mongoose from "mongoose";
 import { startExpiryJob } from "./jobs/expireReservation.js";
+import uploadRoutes from "./routes/upload.route.js";
 
 
 const app = express();
@@ -34,6 +35,7 @@ app.use(cookieParser());
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/upload", uploadRoutes);
 
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "..", "frontend/dist")));

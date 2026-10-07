@@ -1,4 +1,4 @@
-import { Button, VStack } from "@chakra-ui/react";
+import { Box, Button, Image, Input, Text, VStack } from "@chakra-ui/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -8,6 +8,7 @@ import { useProductStore } from "../store/product-store";
 import { productSchema } from "../utils/schema";
 import type { Product, ProductFormProps } from "../utils/types";
 import FloatingInput from "./FloatingInput";
+import useUploadImage from "../hooks/useUploadImage";
 
 type ProductFormInput = z.input<typeof productSchema>;
 type ProductFormOutput = z.output<typeof productSchema>;
@@ -24,6 +25,7 @@ const ProductForm = ({ submitLabel = "Save" }: ProductFormProps) => {
 
   const { updateProduct, isUpdating } = useUpdateProduct();
   const { addProduct, isAdding } = useAddProduct();
+  const { uploadImage, isUploading, uploadError } = useUploadImage();
 
   const isLoading = isUpdating || isAdding;
 
@@ -97,14 +99,40 @@ const ProductForm = ({ submitLabel = "Save" }: ProductFormProps) => {
         name="image"
         control={control}
         render={({ field }) => (
-          <FloatingInput
-            label="Image URL"
-            name="image"
-            value={field.value}
-            onChange={field.onChange}
-            onBlur={field.onBlur}
-            error={errors.image?.message}
-          />
+          <Box mb={2}>
+            {field.value && (
+              <Image
+                src={field.value}
+                alt="Product preview"
+                boxSize="120px"
+                objectFit="cover"
+                rounded="lg"
+                mb={2}
+              />
+            )}
+
+            <Input
+              type="file"
+              accept="image/*"
+              pt={3}
+              h="52px"
+              rounded="xl"
+              disabled={isUploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                uploadImage(file, {
+                  onSuccess: (url) => field.onChange(url),
+                });
+              }}
+            />
+
+            <Text color="red.500" fontSize="xs" my={1} minH="16px">
+              {isUploading
+                ? "Uploading..."
+                : uploadError?.message || errors.image?.message}
+            </Text>
+          </Box>
         )}
       />
       <Controller
