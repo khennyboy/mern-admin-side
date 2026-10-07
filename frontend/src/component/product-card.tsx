@@ -9,17 +9,16 @@ import {
   Menu,
   Portal,
 } from "@chakra-ui/react";
+import { useState } from "react";
+import { BsThreeDotsVertical } from "react-icons/bs";
 import { CiEdit } from "react-icons/ci";
 import { MdOutlineDeleteOutline } from "react-icons/md";
-import { BsThreeDotsVertical } from "react-icons/bs";
 import { useColorModeValue } from "../components/ui/color-mode";
-import { useProductStore } from "../store/product-store";
-import type { ProductCardProps } from "../utils/types";
-import { useShallow } from "zustand/react/shallow";
-import type { ConfirmAction } from "../utils/orders";
-import { useState } from "react";
-import ConfirmDialog from "./ConfirmDalog";
 import useDeleteProduct from "../hooks/useDeleteproduct";
+import type { ConfirmAction } from "../utils/orders";
+import type { ProductCardProps, ProductDetail } from "../utils/types";
+import ConfirmDialog from "./ConfirmDalog";
+import UpdateDialog from "./UpdateDialog";
 
 const LOW_STOCK = 5;
 
@@ -36,15 +35,9 @@ const ProductCard = ({ product }: ProductCardProps) => {
   const priceBg = useColorModeValue("purple.50", "purple.950");
   const priceColor = useColorModeValue("purple.700", "purple.300");
   const [confirm, setConfirm] = useState<ConfirmAction>(null);
+  const [updateData, setUpdateData] = useState<ProductDetail | null>(null);
 
   const stock = getStockInfo(product.quantity);
-
-  const { setSelectedProduct, setUpdateDialog } = useProductStore(
-    useShallow((state) => ({
-      setSelectedProduct: state.setSelectedProduct,
-      setUpdateDialog: state.setUpdateDialog,
-    })),
-  );
 
   const { deleteProduct } = useDeleteProduct();
   return (
@@ -108,8 +101,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
               size={"sm"}
               rounded={"lg"}
               onClick={() => {
-                setUpdateDialog(true);
-                setSelectedProduct(product);
+                setUpdateData(product);
               }}
             >
               <CiEdit />
@@ -151,8 +143,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
                       cursor={"pointer"}
                       value="edit"
                       onClick={() => {
-                        setUpdateDialog(true);
-                        setSelectedProduct(product);
+                        setUpdateData(product);
                       }}
                     >
                       <HStack gap={2}>
@@ -188,6 +179,12 @@ const ProductCard = ({ product }: ProductCardProps) => {
         setDialogData={setConfirm}
         action={confirm}
         onDelete={deleteProduct}
+      />
+      {/* update dialog */}
+      <UpdateDialog
+        updateDialog={!!updateData}
+        setUpdateDialog={setUpdateData}
+        product={product}
       />
     </Box>
   );

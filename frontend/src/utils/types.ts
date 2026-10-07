@@ -16,6 +16,8 @@ export type ProductDetail = Product & {
 
 export type ProductFormProps = {
   submitLabel?: string;
+  product?: ProductDetail
+  onSuccess?: () => void;
 };
 
 export type FloatingInputProps = InputProps & {
@@ -66,14 +68,9 @@ export type ProductCardProps = {
 };
 
 export type ProductStore = {
-  updateDialog: boolean;
-  setUpdateDialog: (open: boolean) => void;
   products: ProductDetail[];
   setProducts: (products: ProductDetail[]) => void;
   totalProducts: number;
   pageSize: number;
   setCounts: (totalProducts: number, pageSize: number) => void;
-  selectedProduct: ProductDetail | null;
-  setSelectedProduct: (product: ProductDetail | null) => void;
-
 };

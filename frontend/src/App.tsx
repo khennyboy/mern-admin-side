@@ -1,14 +1,13 @@
 import { Box } from "@chakra-ui/react";
 import { Route, Routes } from "react-router-dom";
+import Footer from "./component/Footer";
 import NavBar from "./component/NavBar";
+import ProtectedRoute from "./component/ProtectedRoute";
 import { useColorModeValue } from "./components/ui/color-mode";
+import { Toaster } from "./components/ui/toaster";
 import CreatePage from "./pages/CreatePage";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
-import Footer from "./component/Footer";
-import ProtectedRoute from "./component/ProtectedRoute";
-import UpdateDialog from "./component/UpdateDialog";
-import { Toaster } from "./components/ui/toaster";
 import NotFoundPage from "./pages/NotFound";
 import OrdersPage from "./pages/OrdersPage";
 
@@ -28,7 +27,6 @@ function App() {
                 <Route path="/orders" element={<OrdersPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
-              <UpdateDialog />
               <Footer />
             </ProtectedRoute>
           }

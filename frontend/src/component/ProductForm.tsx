@@ -4,26 +4,27 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import useAddProduct from "../hooks/useAddProduct";
 import useUpdateProduct from "../hooks/useUpdateproduct";
-import { useProductStore } from "../store/product-store";
+import useUploadImage from "../hooks/useUploadImage";
 import { productSchema } from "../utils/schema";
 import type { Product, ProductFormProps } from "../utils/types";
 import FloatingInput from "./FloatingInput";
-import useUploadImage from "../hooks/useUploadImage";
 
 type ProductFormInput = z.input<typeof productSchema>;
 type ProductFormOutput = z.output<typeof productSchema>;
 
-const ProductForm = ({ submitLabel = "Save" }: ProductFormProps) => {
-  const selectedProduct = useProductStore((state) => state.selectedProduct);
-
+const ProductForm = ({
+  submitLabel = "Save",
+  product,
+  onSuccess,
+}: ProductFormProps) => {
   const initialValues: ProductFormInput = {
-    name: selectedProduct?.name || "",
-    price: selectedProduct?.price.toString() || "",
-    quantity: selectedProduct?.quantity.toString() || "",
-    image: selectedProduct?.image || "",
+    name: product?.name || "",
+    price: product?.price.toString() || "",
+    quantity: product?.quantity.toString() || "",
+    image: product?.image || "",
   };
 
-  const { updateProduct, isUpdating } = useUpdateProduct();
+  const { updateProduct, isUpdating } = useUpdateProduct({ onSuccess });
   const { addProduct, isAdding } = useAddProduct();
   const { uploadImage, isUploading, uploadError } = useUploadImage();
 
@@ -41,17 +42,17 @@ const ProductForm = ({ submitLabel = "Save" }: ProductFormProps) => {
   });
 
   const onSubmit = (values: ProductFormOutput) => {
-    const product: Product = {
+    const payLoad: Product = {
       name: values.name,
       price: values.price,
       image: values.image,
       quantity: values.quantity,
     };
 
-    if (selectedProduct) {
-      updateProduct({ id: selectedProduct._id, product });
+    if (product) {
+      updateProduct({ id: product._id, product: payLoad });
     } else {
-      addProduct(product, {
+      addProduct(payLoad, {
         onSuccess: () => reset(initialValues),
       });
     }

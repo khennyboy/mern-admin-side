@@ -1,25 +1,26 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
+import { api } from "../utils/api";
+import { capitalize } from "../utils/capitalize";
 import toast from "../utils/toast";
 import type {
     GetProductsSuccessResponse,
     OtherProductResponse,
     Product,
 } from "../utils/types";
-import { useProductStore } from "../store/product-store";
-import { capitalize } from "../utils/capitalize";
-import { api } from "../utils/api";
 
 type UpdateParameter = {
     product: Product;
     id: string;
 };
 
+type UseUpdateProductOptions = {
+    onSuccess?: () => void;
+};
 
-const useUpdateProduct = () => {
+const useUpdateProduct = (options: UseUpdateProductOptions = {}) => {
     const queryClient = useQueryClient();
     const [searchParams] = useSearchParams();
-    const setUpdateDialog = useProductStore((state) => state.setUpdateDialog);
     const page = Number(searchParams.get("page")) || 1;
 
     const { mutate, isPending, isSuccess } = useMutation<
@@ -59,7 +60,7 @@ const useUpdateProduct = () => {
                     };
                 }
             );
-            setUpdateDialog(false)
+            options.onSuccess?.();
         },
     });
 
