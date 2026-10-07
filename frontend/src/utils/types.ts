@@ -75,6 +75,5 @@ export type ProductStore = {
   setCounts: (totalProducts: number, pageSize: number) => void;
   selectedProduct: ProductDetail | null;
   setSelectedProduct: (product: ProductDetail | null) => void;
-  deleteDialog: boolean;
-  setDeleteDialog: (open: boolean) => void;
+
 };

@@ -29,6 +29,7 @@ import {
   money,
   refundOrder,
 } from "../utils/orders";
+import ConfirmDialog from "../component/ConfirmDalog";
 
 const OrdersPage = () => {
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
@@ -76,6 +77,7 @@ const OrdersPage = () => {
     "complete",
     setPending,
   );
+
   // to refund customer
   const { mutate: refund } = useOrderAction(
     refundOrder,
@@ -83,14 +85,6 @@ const OrdersPage = () => {
     "refund",
     setPending,
   );
-
-  // what is doing the actual work 
-  const runConfirmed = () => {
-    if (!confirm) return;
-    if (confirm.kind === "refund") refund(confirm.order._id);
-    else markDelivered(confirm.order._id);
-    setConfirm(null);
-  };
 
   if (isLoading) {
     return (
@@ -141,7 +135,6 @@ const OrdersPage = () => {
             onRequestComplete={(order) =>
               setConfirm({ kind: "complete", order })
             }
-            onDeliver={markDelivered}
           />
         )}
       </Container>
@@ -210,57 +203,14 @@ const OrdersPage = () => {
         </Portal>
       </Dialog.Root>
 
-      {/* confirm dialog */}
-      <Dialog.Root
-        open={!!confirm}
-        onOpenChange={(e) => !e.open && setConfirm(null)}
-        placement="center"
-        size="md"
-      >
-        <Portal>
-          <Dialog.Backdrop />
-          <Dialog.Positioner p={4}>
-            <Dialog.Content rounded={"2xl"} w={"full"} maxW={"420px"}>
-              <Dialog.Header>
-                <Dialog.Title>
-                  {confirm?.kind === "refund"
-                    ? "Refund customer?"
-                    : "Mark order completed?"}
-                </Dialog.Title>
-              </Dialog.Header>
-              <Dialog.Body>
-                {confirm?.kind === "refund" ? (
-                  <Text fontSize="sm">
-                    Are you sure you want to refund the Customer
-                  </Text>
-                ) : (
-                  <Text fontSize="sm">
-                    Are you sure you've delivered the order
-                  </Text>
-                )}
-              </Dialog.Body>
-              <Dialog.Footer>
-                <Button
-                  variant="outline"
-                  rounded="lg"
-                  onClick={() => setConfirm(null)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  rounded="lg"
-                  colorPalette={confirm?.kind === "refund" ? "red" : "green"}
-                  onClick={runConfirmed}
-                >
-                  {confirm?.kind === "refund"
-                    ? `Refund ${money(confirm.order.refundAmount ?? 0)}`
-                    : "Mark completed"}
-                </Button>
-              </Dialog.Footer>
-            </Dialog.Content>
-          </Dialog.Positioner>
-        </Portal>
-      </Dialog.Root>
+      {/* deliver and delete dialog */}
+      <ConfirmDialog
+        openDialog={!!confirm}
+        setDialogData={setConfirm}
+        action={confirm}
+        onRefund={refund}
+        onComplete={markDelivered}
+      />
 
       <Custompagination
         pagination={pagination}

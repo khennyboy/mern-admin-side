@@ -16,6 +16,10 @@ import { useColorModeValue } from "../components/ui/color-mode";
 import { useProductStore } from "../store/product-store";
 import type { ProductCardProps } from "../utils/types";
 import { useShallow } from "zustand/react/shallow";
+import type { ConfirmAction } from "../utils/orders";
+import { useState } from "react";
+import ConfirmDialog from "./ConfirmDalog";
+import useDeleteProduct from "../hooks/useDeleteproduct";
 
 const LOW_STOCK = 5;
 
@@ -31,18 +35,18 @@ const ProductCard = ({ product }: ProductCardProps) => {
   const borderColor = useColorModeValue("gray.200", "gray.800");
   const priceBg = useColorModeValue("purple.50", "purple.950");
   const priceColor = useColorModeValue("purple.700", "purple.300");
+  const [confirm, setConfirm] = useState<ConfirmAction>(null);
 
   const stock = getStockInfo(product.quantity);
 
-  const { setSelectedProduct, setUpdateDialog, setDeleteDialog } =
-    useProductStore(
-      useShallow((state) => ({
-        setSelectedProduct: state.setSelectedProduct,
-        setUpdateDialog: state.setUpdateDialog,
-        setDeleteDialog: state.setDeleteDialog,
-      })),
-    );
+  const { setSelectedProduct, setUpdateDialog } = useProductStore(
+    useShallow((state) => ({
+      setSelectedProduct: state.setSelectedProduct,
+      setUpdateDialog: state.setUpdateDialog,
+    })),
+  );
 
+  const { deleteProduct } = useDeleteProduct();
   return (
     <Box
       bg={bg}
@@ -117,8 +121,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
               rounded={"lg"}
               colorPalette={"red"}
               onClick={() => {
-                setDeleteDialog(true);
-                setSelectedProduct(product);
+                setConfirm({ kind: "delete", product });
               }}
             >
               <MdOutlineDeleteOutline />
@@ -164,8 +167,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
                       value="delete"
                       color={"red.500"}
                       onClick={() => {
-                        setDeleteDialog(true);
-                        setSelectedProduct(product);
+                        setConfirm({ kind: "delete", product });
                       }}
                     >
                       <HStack gap={2}>
@@ -180,6 +182,13 @@ const ProductCard = ({ product }: ProductCardProps) => {
           </Box>
         </HStack>
       </Box>
+      {/* delete dialog */}
+      <ConfirmDialog
+        openDialog={!!confirm}
+        setDialogData={setConfirm}
+        action={confirm}
+        onDelete={deleteProduct}
+      />
     </Box>
   );
 };

@@ -17,11 +17,10 @@ const useDeleteProduct = () => {
     const [searchParams] = useSearchParams();
     const page = Number(searchParams.get("page")) || 1;
 
-    const { setProducts, setCounts, setDeleteDialog } = useProductStore(
+    const { setProducts, setCounts } = useProductStore(
         useShallow((state) => ({
             setCounts: state.setCounts,
             setProducts: state.setProducts,
-            setDeleteDialog: state.setDeleteDialog
         })),
     );
 
@@ -34,8 +33,6 @@ const useDeleteProduct = () => {
         mutationFn: (id) => api(`/products/${id}`, { method: "DELETE" }),
         // runs before mutationfn runs
         onMutate: async (id) => {
-            setDeleteDialog(false);
-
             // snapshot for rollback
             const { products, totalProducts, pageSize } =
                 useProductStore.getState();

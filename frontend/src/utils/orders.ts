@@ -1,4 +1,5 @@
 import { api } from "./api";
+import type { ProductDetail } from "./types";
 
 export interface PopulatedProduct {
     _id: string;
@@ -39,8 +40,8 @@ export interface OrdersResponse {
 
 export type ItemFlag = "unavailable" | "refunded" | null;
 export type DisplayItem = OrderItem & { flag: ItemFlag };
-export type ActionKind = "refund" | "complete";
-export type ConfirmAction = { kind: ActionKind; order: Order } | null;  
+export type ActionKind = "refund" | "complete" | "delete";
+export type ConfirmAction = { kind: ActionKind; order?: Order, product?: ProductDetail } | null;
 export type PendingAction = { id: string; kind: ActionKind } | null;
 
 export const money = (amount: number) => `₦${amount.toLocaleString()}`;
@@ -67,7 +68,7 @@ export const flagLabel = (flag: ItemFlag) =>
         : flag === "refunded"
             ? "(refunded)"
             : "";
-            
+
 // flag color 
 export const flagColor = (flag: ItemFlag) =>
     flag === "unavailable" ? "red.500" : "gray.500";

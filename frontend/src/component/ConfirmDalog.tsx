@@ -1,68 +1,96 @@
-import { Button, Dialog, Text } from "@chakra-ui/react";
-import useDeleteProduct from "../hooks/useDeleteproduct";
-import { useProductStore } from "../store/product-store";
+import { Button, Dialog, Portal, Text } from "@chakra-ui/react";
+import { money, type ConfirmAction } from "../utils/orders";
 
-const ConfirmDeleteDialog = () => {
-  const deleteDialog = useProductStore((state) => state.deleteDialog);
-  const selectedProduct = useProductStore((state) => state.selectedProduct);
-  const setDeleteDialog = useProductStore((state) => state.setDeleteDialog);
-  const { deleteProduct, isDeleting } = useDeleteProduct();
+interface ConfirmDialogProps {
+  action: ConfirmAction;
+  openDialog: boolean;
+  setDialogData: (x: null) => void;
+  onRefund?: (orderId: string) => void;
+  onComplete?: (orderId: string) => void;
+  onDelete?: (productId: string) => void;
+}
 
-  const handleConfirmDelete = async () => {
-    if (selectedProduct) {
-      deleteProduct(selectedProduct._id);
-    }
+const ConfirmDialog = ({
+  action,
+  openDialog,
+  setDialogData,
+  onRefund,
+  onComplete,
+  onDelete,
+}: ConfirmDialogProps) => {
+  const runConfirmed = () => {
+    if (!action) return;
+    if (action.kind === "refund") onRefund?.(action.order!._id);
+    else if (action.kind === "complete") onComplete?.(action.order!._id);
+    else if (action.kind === "delete") onDelete?.(action.product!._id);
+    setDialogData(null);
   };
+
+  // title + body + button text per action
+  const copy = {
+    refund: {
+      title: "Refund customer?",
+      body: "This will refund the customer and mark the affected items as refunded. This action cannot be undone.",
+      button: `Refund ${money(action?.order?.refundAmount ?? 0)}`,
+      palette: "red",
+    },
+    complete: {
+      title: "Mark order completed?",
+      body: "This confirms the order has been delivered to the customer. You can't undo this from here.",
+      button: "Mark completed",
+      palette: "green",
+    },
+    delete: {
+      title: "Delete product?",
+      body: `You're about to permanently delete "${
+        action?.product?.name ?? "this product"
+      }". This cannot be undone.`,
+      button: "Delete product",
+      palette: "red",
+    },
+  } as const;
+
+  if (!action) return null;
+  const current = copy[action.kind];
 
   return (
     <Dialog.Root
-      open={deleteDialog}
-      onOpenChange={(e) => setDeleteDialog(e.open)}
-      placement={"center"}
-      role={"alertdialog"}
+      open={openDialog}
+      onOpenChange={(e) => !e.open && setDialogData(null)}
+      placement="center"
+      size="md"
     >
-      <Dialog.Backdrop />
-      <Dialog.Positioner p={4}>
-        <Dialog.Content rounded={"2xl"} w={"full"} maxW={"400px"}>
-          <Dialog.Header px={5} pt={5}>
-            <Dialog.Title fontSize={"lg"} fontWeight={"bold"}>
-              Delete Product
-            </Dialog.Title>
-          </Dialog.Header>
-
-          <Dialog.Body px={5}>
-            <Text color={"gray.500"} fontSize={"sm"}>
-              Are you sure you want to delete{" "}
-              <Text as="span" fontWeight={"semibold"}>
-                {selectedProduct?.name}
-              </Text>
-              ? This action cannot be undone.
-            </Text>
-          </Dialog.Body>
-
-          <Dialog.Footer px={5} pb={5} gap={2}>
-            <Button
-              variant={"outline"}
-              rounded={"lg"}
-              onClick={() => setDeleteDialog(false)}
-              disabled={isDeleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              colorPalette={"red"}
-              rounded={"lg"}
-              onClick={handleConfirmDelete}
-              loading={isDeleting}
-              loadingText="Deleting..."
-            >
-              Delete
-            </Button>
-          </Dialog.Footer>
-        </Dialog.Content>
-      </Dialog.Positioner>
+      <Portal>
+        <Dialog.Backdrop />
+        <Dialog.Positioner p={4}>
+          <Dialog.Content rounded="2xl" w="full" maxW="420px">
+            <Dialog.Header>
+              <Dialog.Title>{current.title}</Dialog.Title>
+            </Dialog.Header>
+            <Dialog.Body>
+              <Text fontSize="sm">{current.body}</Text>
+            </Dialog.Body>
+            <Dialog.Footer>
+              <Button
+                variant="outline"
+                rounded="lg"
+                onClick={() => setDialogData(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                rounded="lg"
+                colorPalette={current.palette}
+                onClick={runConfirmed}
+              >
+                {current.button}
+              </Button>
+            </Dialog.Footer>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Portal>
     </Dialog.Root>
   );
 };
 
-export default ConfirmDeleteDialog;
+export default ConfirmDialog;

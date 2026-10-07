@@ -19,10 +19,4 @@ export const useProductStore = create<ProductStore>((set) => ({
   selectedProduct: null,
   setSelectedProduct: (product) => set({ selectedProduct: product }),
 
-  deleteDialog: false,
-  setDeleteDialog: (open) =>
-    set((state) => ({
-      deleteDialog: open,
-      selectedProduct: open ? state.selectedProduct : null,
-    })),
 }));

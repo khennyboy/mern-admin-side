@@ -12,7 +12,6 @@ interface OrdersTableProps {
   onShowMore: (order: Order) => void;
   onRequestRefund: (order: Order) => void;
   onRequestComplete: (order: Order) => void;
-  onDeliver: (id: string) => void;
 }
 
 export const OrdersTable = ({
@@ -24,7 +23,6 @@ export const OrdersTable = ({
   onShowMore,
   onRequestRefund,
   onRequestComplete,
-//   onDeliver,
 }: OrdersTableProps) => (
   <Box
     overflowX="auto"
