@@ -10,7 +10,7 @@ import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import NotFoundPage from "./pages/NotFound";
 import OrdersPage from "./pages/OrdersPage";
-import ProductDetailPage from "./pages/ProductDetail";
+import ProductDetailPage from "./pages/ProductDetailPage";
 
 function App() {
   return (
