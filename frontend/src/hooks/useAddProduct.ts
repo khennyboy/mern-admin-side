@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../utils/api";
 import toast from "../utils/toast";
-import type { Product, ProductDetail } from "../utils/types";
+import type { ProductDetail, ProductPayload } from "../utils/types";
 
 const useAddProduct = () => {
     const queryClient = useQueryClient();
@@ -19,7 +19,7 @@ const useAddProduct = () => {
     const { mutate, isPending, isSuccess, data } = useMutation<
         ProductDetail,
         Error,
-        Product
+        ProductPayload          // ← was: Product
     >({
         mutationFn: async (newProduct) => {
             abortControllerRef.current = new AbortController();
@@ -37,7 +37,7 @@ const useAddProduct = () => {
             navigate("/");
         },
         onError: (err) => {
-            if (err.name === "AbortError") return; // silently ignore — user navigated away on purpose
+            if (err.name === "AbortError") return;
             if (err.message.includes("Session expired")) return;
             toast(false, err.message);
         },

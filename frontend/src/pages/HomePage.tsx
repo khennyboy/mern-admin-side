@@ -1,34 +1,39 @@
 import {
   Box,
+  Button,
   Center,
   Container,
-  Heading,
   HStack,
+  Heading,
   SimpleGrid,
   Spinner,
   Text,
-  VStack,
 } from "@chakra-ui/react";
-import { LuPackageOpen } from "react-icons/lu";
-import { Link, useSearchParams } from "react-router-dom";
-import ProductCard from "../component/product-card";
-
-import { IoWarning } from "react-icons/io5";
-import { useColorModeValue } from "../components/ui/color-mode";
-import useGetProducts from "../hooks/useGetProducts";
-
-import { useProductStore } from "../store/product-store";
-import { useShallow } from "zustand/react/shallow";
-import { computePagination } from "../utils/compute-pagination";
+import { useSearchParams } from "react-router-dom";
 import CustomPagination from "../component/CustomPagination";
+import ProductCard from "../component/product-card";
+import useGetProducts from "../hooks/useGetProducts";
+import { computePagination } from "../utils/compute-pagination";
+import { CATEGORIES } from "../utils/schema";
 
 const HomePage = () => {
-  const subTextColor = useColorModeValue("gray.500", "gray.400");
-  const emptyBg = useColorModeValue("white", "gray.900");
-  const emptyBorder = useColorModeValue("gray.200", "gray.800");
-
   const [searchParams, setSearchParams] = useSearchParams();
   const page = Number(searchParams.get("page")) || 1;
+  const category = searchParams.get("category") || "all";
+
+  const { products, totalProducts, pageSize, isLoading, isPlaceholderData } =
+    useGetProducts();
+
+  const pagination = computePagination(page, totalProducts, pageSize);
+
+  const setCategory = (value: string) => {
+    setSearchParams((prev) => {
+      if (value === "all") prev.delete("category");
+      else prev.set("category", value);
+      prev.delete("page");
+      return prev;
+    });
+  };
 
   const goToPage = (nextPage: number) => {
     setSearchParams((prev) => {
@@ -37,124 +42,76 @@ const HomePage = () => {
     });
   };
 
-  const { isLoading, error } = useGetProducts(page);
-
-  const { products, totalProducts, pageSize } = useProductStore(
-    useShallow((state) => ({
-      products: state.products,
-      totalProducts: state.totalProducts,
-      pageSize: state.pageSize,
-    })),
-  );
-
-  const pagination = computePagination(page, totalProducts, pageSize);
-
-  if (error) {
-    return (
-      <Container
-        maxW={"480px"}
-        py={12}
-        minH={"dvh"}
-        display={"flex"}
-        alignItems={"center"}
-      >
-        <Box
-          w={"full"}
-          bg={emptyBg}
-          border="1px solid"
-          borderColor={"red.500"}
-          rounded={"lg"}
-          py={3}
-          px={2}
-        >
-          <HStack gap={0.5} align={"center"} justify={"center"}>
-            <IoWarning color="red" />
-            <Text>{error}</Text>
-          </HStack>
-        </Box>
-      </Container>
-    );
-  }
-
   return (
-    <Container maxW={"1140px"} py={8} minH={"dvh"}>
-      <VStack gap={7} align={"stretch"}>
-        <VStack gap={0.5} align={"start"}>
-          <Heading
-            fontSize={"3xl"}
-            fontWeight={"extrabold"}
-            letterSpacing={"tight"}
-          >
-            Your Products
-          </Heading>
-          <Text color={subTextColor} fontSize={"md"}>
-            {isLoading
-              ? "Loading your products…"
-              : `${totalProducts} product${products.length === 1 ? "" : "s"} in your store`}
-          </Text>
-          <Text color={subTextColor} fontSize={"sm"}>
-            {totalProducts !== 0 && pageSize < totalProducts
-              ? `Showing pages ${page} of ${pagination.totalPages}`
-              : ""}
-          </Text>
-        </VStack>
+    <Container maxW="7xl" py={8}>
+      <Heading mb={2}>Your Products</Heading>
+      <Text color="gray.500" mb={6}>
+        {totalProducts} product{totalProducts === 1 ? "" : "s"} in your store
+      </Text>
 
-        {isLoading ? (
-          <Center py={24}>
-            <Spinner size="lg" color="purple.500" />
-          </Center>
-        ) : products.length === 0 ? (
-          <Box
-            bg={emptyBg}
-            border="1px solid"
-            borderColor={emptyBorder}
-            rounded={"2xl"}
-            py={20}
+      {/* FILTER BAR */}
+      <HStack gap={2} mb={6} overflowX="auto" pb={2} flexWrap="wrap">
+        <Button
+          size="sm"
+          rounded="full"
+          flexShrink={0}
+          colorPalette="purple"
+          variant={category === "all" ? "solid" : "outline"}
+          onClick={() => setCategory("all")}
+        >
+          All
+        </Button>
+        {CATEGORIES.map((cat) => (
+          <Button
+            key={cat}
+            size="sm"
+            rounded="full"
+            flexShrink={0}
+            colorPalette="purple"
+            variant={category === cat ? "solid" : "outline"}
+            onClick={() => setCategory(cat)}
           >
-            <VStack gap={3}>
-              <Box color={subTextColor}>
-                <LuPackageOpen size={40} />
-              </Box>
-              <Text fontWeight={"semibold"} fontSize={"lg"}>
-                No products yet
-              </Text>
-              <Text
-                color={subTextColor}
-                fontSize={"sm"}
-                maxW={"280px"}
-                textAlign={"center"}
-              >
-                Start building your catalog by adding your first product.
-              </Text>
-              <Link to={"/create"}>
-                <Text
-                  color={"purple.500"}
-                  fontWeight={"semibold"}
-                  fontSize={"sm"}
-                  _hover={{ textDecoration: "underline" }}
-                  mt={2}
-                >
-                  Create a product →
-                </Text>
-              </Link>
-            </VStack>
-          </Box>
-        ) : (
-          <Box>
-            <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} gap={4} w={"full"}>
-              {products.map((product) => (
-                <ProductCard key={product._id} product={product} />
-              ))}
-            </SimpleGrid>
+            {cat}
+          </Button>
+        ))}
+      </HStack>
 
-            <CustomPagination
-              pagination={pagination}
-              page={page}
-              onPageChange={goToPage}
-            />
-          </Box>
-        )}
-      </VStack>
+      {/* GRID */}
+      {isLoading ? (
+        <Center minH="40vh">
+          <Spinner size="xl" />
+        </Center>
+      ) : products.length === 0 ? (
+        <Center minH="30vh">
+          <Text color="gray.500">
+            {category === "all"
+              ? "No products yet."
+              : "No products match this filter."}
+          </Text>
+        </Center>
+      ) : (
+        <SimpleGrid
+          columns={{ base: 1, sm: 2, md: 3, lg: 4 }}
+          gap={5}
+          opacity={isPlaceholderData ? 0.5 : 1}
+          transition="opacity 0.2s ease"
+          pointerEvents={isPlaceholderData ? "none" : "auto"}
+        >
+          {products.map((product) => (
+            <ProductCard key={product._id} product={product} />
+          ))}
+        </SimpleGrid>
+      )}
+
+      {products.length > 0 && (
+        <Box mt={8}>
+          <CustomPagination
+            pagination={pagination}
+            page={page}
+            onPageChange={goToPage}
+          />
+        </Box>
+      )}
     </Container>
   );
 };

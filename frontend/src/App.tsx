@@ -10,6 +10,7 @@ import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import NotFoundPage from "./pages/NotFound";
 import OrdersPage from "./pages/OrdersPage";
+import ProductDetailPage from "./pages/ProductDetail";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
               <NavBar />
               <Routes>
                 <Route path="/" element={<HomePage />} />
+                <Route path="/product/:slug" element={<ProductDetailPage />} />
                 <Route path="/create" element={<CreatePage />} />
                 <Route path="/orders" element={<OrdersPage />} />
                 <Route path="*" element={<NotFoundPage />} />

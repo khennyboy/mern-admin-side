@@ -1,66 +1,84 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { useShallow } from "zustand/react/shallow";
-import { useProductStore } from "../store/product-store";
-import toast from "../utils/toast";
-import type { OtherProductResponse, ProductDetail } from "../utils/types";
 import { api } from "../utils/api";
+import toast from "../utils/toast";
+import type {
+  GetProductsSuccessResponse,
+  OtherProductResponse,
+} from "../utils/types";
 
 type DeleteContext = {
-    products: ProductDetail[];
-    totalProducts: number;
-    pageSize: number;
+  previous: GetProductsSuccessResponse | undefined;
 };
 
 const useDeleteProduct = () => {
-    const queryClient = useQueryClient();
-    const [searchParams] = useSearchParams();
-    const page = Number(searchParams.get("page")) || 1;
+  const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const page = Number(searchParams.get("page")) || 1;
+  const category = searchParams.get("category") || "all";
 
-    const { setProducts, setCounts } = useProductStore(
-        useShallow((state) => ({
-            setCounts: state.setCounts,
-            setProducts: state.setProducts,
-        })),
-    );
+  const { mutate, isPending } = useMutation<
+    OtherProductResponse,
+    Error,
+    string,
+    DeleteContext
+  >({
+    mutationFn: (id) => api(`/products/${id}`, { method: "DELETE" }),
 
-    const { mutate, isPending } = useMutation<
-        OtherProductResponse,
-        Error,
-        string,
-        DeleteContext // delete context parameter
-    >({
-        mutationFn: (id) => api(`/products/${id}`, { method: "DELETE" }),
-        // runs before mutationfn runs
-        onMutate: async (id) => {
-            // snapshot for rollback
-            const { products, totalProducts, pageSize } =
-                useProductStore.getState();
+    // 1. runs BEFORE the request fires
+    onMutate: async (id) => {
+      // cancel any in-flight fetches for this query so they don't overwrite us
+      await queryClient.cancelQueries({
+        queryKey: ["products", page, category],
+      });
 
-            // instantly remove from list and decrement count — no waiting on refetch
-            setProducts(products.filter((p) => p._id !== id));
-            setCounts(Math.max(totalProducts - 1, 0), pageSize);
+      // snapshot for rollback
+      const previous = queryClient.getQueryData<GetProductsSuccessResponse>([
+        "products",
+        page,
+        category,
+      ]);
 
-            return { products, totalProducts, pageSize };
-        },
-        onError: (err, _id, context) => {
-            if (context) {
-                setProducts(context.products);
-                setCounts(context.totalProducts, context.pageSize);
-            }
-            if (err.message.includes("Session expired")) return;
-            toast(false, err.message);
-        },
-        onSuccess: () => {
-            toast(true, "Product deleted successfully");
-            queryClient.invalidateQueries({ queryKey: ["products", page] });
-        },
-    });
+      // optimistically remove from the cache
+      if (previous) {
+        queryClient.setQueryData<GetProductsSuccessResponse>(
+          ["products", page, category],
+          {
+            ...previous,
+            data: previous.data.filter((p) => p._id !== id),
+            totalProducts: Math.max(previous.totalProducts - 1, 0),
+          },
+        );
+      }
 
-    return {
-        deleteProduct: mutate,
-        isDeleting: isPending,
-    };
+      return { previous };
+    },
+
+    // 2. rollback on failure
+    onError: (err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(
+          ["products", page, category],
+          context.previous,
+        );
+      }
+      if (err.message.includes("Session expired")) return;
+      toast(false, err.message);
+    },
+
+    // 3. refetch (or skip) after success
+    onSuccess: () => {
+      toast(true, "Product deleted successfully");
+      queryClient.invalidateQueries({
+        queryKey: ["products", page, category],
+      });
+    },
+  });
+
+  return {
+    deleteProduct: mutate,
+    isDeleting: isPending,
+  };
 };
 
 export default useDeleteProduct;

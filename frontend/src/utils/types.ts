@@ -1,11 +1,28 @@
 import type { InputProps } from "@chakra-ui/react";
+import type { CATEGORIES } from "./schema";
 
 
-export interface Product {
+
+export type Category = (typeof CATEGORIES)[number];
+
+export interface ProductImage {
+  url: string;
+  publicId: string;
+}
+
+// what the client sends to create/update
+export interface ProductPayload {
   name: string;
+  description: string;
+  category: Category;
   price: number;
-  image: string;
   quantity: number;
+  images: ProductImage[];
+}
+
+// what the server returns (includes server-owned fields)
+export interface Product extends ProductPayload {
+  slug: string;
 }
 
 export type ProductDetail = Product & {
@@ -67,10 +84,3 @@ export type ProductCardProps = {
   product: ProductDetail;
 };
 
-export type ProductStore = {
-  products: ProductDetail[];
-  setProducts: (products: ProductDetail[]) => void;
-  totalProducts: number;
-  pageSize: number;
-  setCounts: (totalProducts: number, pageSize: number) => void;
-};

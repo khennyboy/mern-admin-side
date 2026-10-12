@@ -1,15 +1,19 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { useProductStore } from "../store/product-store";
+import { useSearchParams } from "react-router-dom";
 import type {
   GetProductsErrorResponse,
   GetProductsSuccessResponse,
 } from "../utils/types";
 
-const fetchProducts = async (page: number, signal?: AbortSignal) => {
-  const res = await fetch(`api/products?page=${page}`, {
-    signal,
-  });
+const fetchProducts = async (
+  page: number,
+  category: string,
+  signal?: AbortSignal,
+) => {
+  const qs = new URLSearchParams({ page: String(page), category });
+  const res = await fetch(`api/products?${qs.toString()}`, { signal });
+
   if (!res.ok) {
     const errorJson: GetProductsErrorResponse = await res.json().catch(
       (): GetProductsErrorResponse => ({
@@ -19,34 +23,27 @@ const fetchProducts = async (page: number, signal?: AbortSignal) => {
     );
     throw new Error(errorJson.message);
   }
-  const json = await res.json();
-  console.log(json)
-  return json;
+
+  return await res.json();
 };
 
-const useGetProducts = (page: number) => {
-  const setProducts = useProductStore((state) => state.setProducts);
-  const setCounts = useProductStore((state) => state.setCounts);
+const useGetProducts = () => {
+  const [searchParams] = useSearchParams();
+  const page = Number(searchParams.get("page")) || 1;
+  const category = searchParams.get("category") || "all";
+
   const queryClient = useQueryClient();
 
-  const { isPending, isError, error, data } = useQuery<
+  const { data, isPending, isError, error, isPlaceholderData } = useQuery<
     GetProductsSuccessResponse,
     Error
   >({
-    queryKey: ["products", page],
-    queryFn: ({ signal }) => fetchProducts(page, signal),
+    queryKey: ["products", page, category],
+    queryFn: ({ signal }) => fetchProducts(page, category, signal),
     placeholderData: (previousData) => previousData,
   });
 
-  useEffect(() => {
-    if (data) {
-      setProducts(data.data);
-      setCounts(data.totalProducts, data.pageSize);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data]);
-
-  // prefetch neighbors using the same derived totalPages logic
+  // prefetch neighbor pages
   useEffect(() => {
     if (!data) return;
     const totalPages = Math.max(
@@ -56,22 +53,27 @@ const useGetProducts = (page: number) => {
 
     if (page < totalPages) {
       queryClient.prefetchQuery({
-        queryKey: ["products", page + 1],
-        queryFn: () => fetchProducts(page + 1),
+        queryKey: ["products", page + 1, category],
+        queryFn: () => fetchProducts(page + 1, category),
       });
     }
 
     if (page > 1) {
       queryClient.prefetchQuery({
-        queryKey: ["products", page - 1],
-        queryFn: () => fetchProducts(page - 1),
+        queryKey: ["products", page - 1, category],
+        queryFn: () => fetchProducts(page - 1, category),
       });
     }
-  }, [data, page, queryClient]);
+  }, [data, page, category, queryClient]);
 
   return {
+    products: data?.data ?? [],
+    totalProducts: data?.totalProducts ?? 0,
+    pageSize: data?.pageSize ?? 10,
     isLoading: isPending,
+    isError,
     error: isError ? error.message : "",
+    isPlaceholderData,
   };
 };
 

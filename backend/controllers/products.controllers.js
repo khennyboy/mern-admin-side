@@ -1,18 +1,27 @@
 import mongoose from "mongoose";
 import Product from "../models/product.model.js";
+import { deleteImages } from "./upload.controller.js";
 
 const limit = 10;
-// get products
+// get all products
 export const getProducts = async (req, res) => {
   try {
-    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const page = Math.max(1, parseInt(req.query.pageO) || 1);
     const skip = (page - 1) * limit;
 
-    const [totalProducts, products] = await Promise.all([
-      Product.countDocuments(),
-      Product.find().sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-    ]);
+    const filter = {};
+    if (req.query.category && req.query.category !== "all") {
+      filter.category = req.query.category;
+    }
 
+    const [totalProducts, products] = await Promise.all([
+      Product.countDocuments(filter),
+      Product.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    ]);
 
     return res.status(200).json({
       success: true,
@@ -21,42 +30,40 @@ export const getProducts = async (req, res) => {
       pageSize: limit,
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: `Error getting product ${error.message}` });
+    return res.status(500).json({
+      success: false,
+      message: `Error getting products: ${error.message}`,
+    });
   }
 };
 
 // create product
 export const createProduct = async (req, res) => {
-  const product = req.body;
-  if (!product.name || !product.price || !product.image || product.quantity === undefined) {
+  const { name, description, price, category, images, quantity } = req.body;
+
+  if (
+    !name ||
+    !description ||
+    price === undefined ||
+    !category ||
+    !Array.isArray(images) ||
+    images.length === 0 ||
+    quantity === undefined
+  ) {
     return res
       .status(400)
       .json({ success: false, message: "Please provide all fields" });
   }
 
-  const quantity = Number(product.quantity);
-
-  if (Number.isNaN(quantity)) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Quantity must be a number" });
-  }
-
-  if (!Number.isInteger(quantity)) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Quantity must be a positive integer" });
-  }
-
-  if (quantity < 0) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Quantity cannot be negative" });
-  }
-
-  const newProduct = new Product(product);
   try {
-    await newProduct.save();
+    const newProduct = await Product.create({
+      name,
+      description,
+      price,
+      category,
+      images,
+      quantity,
+    });
     return res.status(201).json({ success: true, data: newProduct });
   } catch (error) {
     if (error.code === 11000) {
@@ -65,20 +72,22 @@ export const createProduct = async (req, res) => {
         message: "A product with this name already exists.",
       });
     }
-    if (error.name === "CastError") {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid value for field '${error.path}'.`,
-      });
+    if (error.name === "ValidationError") {
+      return res
+        .status(400)
+        .json({ success: false, message: error.message });
     }
-    return res.status(500).json({ success: false, message: `Error adding product ${error.message}` });
+    return res.status(500).json({
+      success: false,
+      message: `Error adding product: ${error.message}`,
+    });
   }
 };
 
 // update product
 export const updateProduct = async (req, res) => {
   const { id } = req.params;
-  const product = req.body;
+  const updates = req.body;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res
@@ -87,32 +96,57 @@ export const updateProduct = async (req, res) => {
   }
 
   try {
-    const updatedProduct = await Product.findOneAndUpdate(
+    const existing = await Product.findById(id);
+    if (!existing) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
+    }
+
+    // figure out which images the client removed
+    let toDelete = [];
+    if (Array.isArray(updates.images)) {
+      const incomingIds = new Set(
+        updates.images.map((i) => i.publicId).filter(Boolean),
+      );
+
+      toDelete = existing.images
+        .filter((img) => img.publicId && !incomingIds.has(img.publicId))
+        .map((img) => img.publicId);
+    }
+
+    const updated = await Product.findOneAndUpdate(
       { _id: id },
-      product,
-      { returnDocument: "after", runValidators: true }
+      updates,
+      { returnDocument: "after", runValidators: true },
     );
-    return res
-      .status(200)
-      .json({ success: true, data: updatedProduct });
+
+    // delete removed images from Cloudinary (after DB succeeds)
+    if (toDelete.length) {
+      await deleteImages(toDelete);
+    }
+
+    return res.status(200).json({ success: true, data: updated });
   } catch (error) {
     if (error.code === 11000) {
-      res.status(409).json({
+      return res.status(409).json({
         success: false,
         message: "A product with this name already exists.",
       });
     }
-    if (error.name === "CastError") {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid value for field '${error.path}'.`,
-      });
+    if (error.name === "ValidationError") {
+      return res
+        .status(400)
+        .json({ success: false, message: error.message });
     }
-
-    return res.status(500).json({ success: false, message: `Error updating product ${error.message}` });
+    return res.status(500).json({
+      success: false,
+      message: `Error updating product: ${error.message}`,
+    });
   }
 };
 
+// delete product
 export const deleteProduct = async (req, res) => {
   const { id } = req.params;
 
@@ -123,17 +157,41 @@ export const deleteProduct = async (req, res) => {
   }
 
   try {
-    const deletedProduct = await Product.findByIdAndDelete(id);
-
-    if (!deletedProduct) {
+    const deleted = await Product.findByIdAndDelete(id);
+    if (!deleted) {
       return res
         .status(404)
         .json({ success: false, message: "Product not found" });
     }
 
-    return res.status(200).json({ success: true, data: deletedProduct });
+    // remove all its images from Cloudinary
+    if (deleted.images?.length) {
+      await deleteImages(
+        deleted.images.map((i) => i.publicId).filter(Boolean),
+      );
+    }
+
+    return res.status(200).json({ success: true, data: deleted });
   } catch (error) {
-    // console.log(`Error deleting product: ${error.message}`);
-    return res.status(500).json({ success: false, message: `Error deleting product ${error.message}` });
+    return res.status(500).json({
+      success: false,
+      message: `Error deleting product: ${error.message}`,
+    });
   }
 };
+
+// get product detail 
+export const getProductBySlug = async (req, res) => {
+  const { slug } = req.params;
+
+  try {
+    const product = await Product.findOne({ slug }).lean();
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+    return res.status(200).json({ success: true, data: product });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
